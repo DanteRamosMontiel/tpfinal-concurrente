@@ -117,22 +117,14 @@ public class Parque {
 
     }
 
-    //Métodos de montania rusa
-    //Para visitantes
+    //-----------------------Métodos de montania rusa ---------------------------------
+    // Para visitantes
     public boolean entrarMontania(Visitante v) throws InterruptedException{
         return montaniaRusa.entrar(v);
     }
 
-    public Visitante subirVagonMontania() throws InterruptedException{
-        return montaniaRusa.subirAlVagon();
-    }
-
-    public void esperarMontania() throws InterruptedException{
-        montaniaRusa.esperarMontania();
-    }
-
-    public void bajarMontania() throws InterruptedException{
-        montaniaRusa.bajar();
+    public void subirVagonMontania(int id) throws InterruptedException{
+       montaniaRusa.subirAlVagon(id);
     }
 
     //Para monitoreo
@@ -140,10 +132,25 @@ public class Parque {
       montaniaRusa.iniciarViaje();
     }
 
-    public void terminarViajeMontania(){
-     montaniaRusa.terminarViaje();   
+    public void terminarViajeMontania() throws InterruptedException{
+     montaniaRusa.terminarViaje();  
     }
 
+    //-----------------------Métodos de autos chocadores ---------------------------------
+    // Para visitantes
+
+    public void entrarAutosChocadores(int id) throws InterruptedException{
+      autosChocadores.entrarAutosChocadores(id);
+    }
+
+    //Para monitoreo
+    public void iniciarViajeAutosC() throws InterruptedException{
+      autosChocadores.iniciarAutos();
+    }
+
+    public void terminarViajeAutosC() throws InterruptedException{
+      autosChocadores.terminarAutos();
+    }
 
 
 

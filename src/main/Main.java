@@ -2,17 +2,21 @@ package main;
 
 import activos.Visitante;
 import activos.extras.Hora;
-import activos.simulaciones.simulacionMontania;
+import activos.simulaciones.*;
 import compartidos.Parque;
 
 public class Main {
     public static void main(String[] args) {
         Parque parque = new Parque(5);
-        Visitante[] visitantes = new Visitante[10];
-
+        Visitante[] visitantes = new Visitante[50];
         //Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);
         sim.start();
+
+        //Autos chocadores
+        simulacionAutosC simAC = new activos.simulaciones.simulacionAutosC(parque);
+        simAC.start();
+
 
         //Hora
         Hora h = new Hora(parque);
