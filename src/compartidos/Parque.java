@@ -40,7 +40,7 @@ public class Parque {
         this.horaActual = 9;
         this.autosChocadores = new AutosChocadores();
         this.montaniaRusa = new MontaniaRusa();
-        this.realidadVirtual = new RealidadVirtual();
+        this.realidadVirtual = new RealidadVirtual(rand.nextInt(0,10),rand.nextInt(0,12),rand.nextInt(0,5));
         this.areaPremios = new AreaPremios();
         this.comedor = new Comedor();
         this.espectaculo = new Espectaculo();
