@@ -12,6 +12,8 @@ public class RealidadVirtual {
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition equipoDisponible = lock.newCondition();
 
+
+    //SE PUEDE AGREGAR OTRO HILO PARA QUE SIMULE SER EL ADMINISTRADOR O ENCARGADO , PERO NO TENDRIA SENTIDO 
     public RealidadVirtual(int visores, int manoplas, int bases) {
         this.visores = visores;
         this.manoplas = manoplas;
