@@ -135,14 +135,14 @@ public class Parque {
         montaniaRusa.bajar();
     }
 
-    // //Para monitoreo
-    // public void iniciarViajeMontania() throws InterruptedException{
-    //     montaniaRusa.iniciarViaje();
-    // }
+    //Para monitoreo
+    public void iniciarViajeMontania() throws InterruptedException{
+      montaniaRusa.iniciarViaje();
+    }
 
-    // public void terminarViajeMontania(){
-    //     montaniaRusa.terminarViaje();   
-    // }
+    public void terminarViajeMontania(){
+     montaniaRusa.terminarViaje();   
+    }
 
 
 

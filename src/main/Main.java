@@ -4,7 +4,6 @@ import activos.Visitante;
 import activos.extras.Hora;
 import activos.simulaciones.simulacionMontania;
 import compartidos.Parque;
-import compartidos.atracciones.MontaniaRusa;
 
 public class Main {
     public static void main(String[] args) {
@@ -12,8 +11,7 @@ public class Main {
         Visitante[] visitantes = new Visitante[10];
 
         //Montaña rusa
-        MontaniaRusa montania = new MontaniaRusa();
-        simulacionMontania sim = new simulacionMontania(montania);
+        simulacionMontania sim = new simulacionMontania(parque);
         sim.start();
 
         //Hora

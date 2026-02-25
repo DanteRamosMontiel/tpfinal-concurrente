@@ -1,23 +1,23 @@
 package activos.simulaciones;
 
-import compartidos.atracciones.MontaniaRusa;
+import compartidos.Parque;
 
 public class simulacionMontania extends Thread{
-    private MontaniaRusa montania;
+    private Parque parque;
 
-    public simulacionMontania(MontaniaRusa xMontania){
-        this.montania = xMontania;
+    public simulacionMontania(Parque xParque){
+        this.parque = xParque;
     }
 
     public void run(){
         while(true){
             try{
-               montania.iniciarViaje();
+               parque.iniciarViajeMontania();;
                System.out.println("MONTAÑA RUSA LLENA. INICIANDO VIAJE...");
                Thread.sleep(7000);
                System.out.println("VIAJE TERMINADO.");
                Thread.sleep(2000);
-               montania.terminarViaje();
+               parque.terminarViajeMontania();
             }catch(InterruptedException e){}
         }
     }
