@@ -31,7 +31,7 @@ public class RealidadVirtual {
             manoplas -= 2;
             bases--;
 
-            System.out.println("Visitante " + id + " recibió equipo completo");
+            System.out.println("Visitante " + id + " recibió equipo completo por el encargado");
         } finally {
             lock.unlock();
         }

@@ -1,51 +1,82 @@
 package compartidos.atracciones;
 
-import java.util.concurrent.Semaphore;
-
 public class AutosChocadores {
 
-    private Semaphore autosLlenos = new Semaphore(0);
-    private Semaphore habilitado = new Semaphore(20);
-    private Semaphore esperarInicio = new Semaphore(0);
-    private Semaphore todosBajaron = new Semaphore(0);
-    private int asientos = 0;
-    private final Object lock = new Object();
+    private int esperando = 0;     // personas sentadas
+    private int bajaron = 0;       // personas que bajaron
+    private int asientos = 0;      // para asignar autos
+    private boolean enCurso = false;
 
-    public void entrarAutosChocadores(int id) throws InterruptedException {
-        habilitado.acquire();
+    public synchronized void entrarAutosChocadores(int id) throws InterruptedException {
 
-        //Para simular los autos con 2 pasajeros
-        int autoAsignado;
-        synchronized (lock) {
-            autoAsignado = asientos / 2;
-            asientos++;
+        // Espera si ya hay 20 personas
+        while (esperando == 20) {
+            wait();
         }
 
-        System.out.println("Visitante " + id +
-                " se sentó en el auto " + autoAsignado);
+        int autoAsignado = asientos / 2;
+        asientos++;
+        esperando++;
 
-        autosLlenos.release();
-        esperarInicio.acquire();
+        System.out.println("Visitante " + id
+                + " se sentó en el auto " + autoAsignado);
+
+        // Si es el número 20, despierta al encargado
+        if (esperando == 20) {
+            notifyAll();
+        }
+
+        // Espera a que inicie la atracción
+        while (!enCurso) {
+            wait();
+        }
+
+        // Espera a que termine
+        while (enCurso) {
+            wait();
+        }
+
         bajar(id, autoAsignado);
     }
 
-    public void iniciarAutos() throws InterruptedException {
-        autosLlenos.acquire(20);
-    }
+    public synchronized void iniciarAutos() throws InterruptedException {
 
-    public void terminarAutos() throws InterruptedException {
-    
-
-        esperarInicio.release(20);
-        todosBajaron.acquire(20);
-        synchronized (lock) {
-            asientos = 0;
+        // Espera hasta que haya 20 personas
+        while (esperando < 20) {
+            wait();
         }
-        habilitado.release(20);
+
+        enCurso = true;
+        notifyAll(); // despierta pasajeros
     }
 
-    private void bajar(int id, int autoAsignado) {
-        System.out.println("Visitante " + id + " se bajo del auto " + autoAsignado);
-        todosBajaron.release();
+    public synchronized void terminarAutos() throws InterruptedException {
+
+        enCurso = false;
+        notifyAll(); // permite que bajen
+
+        // Espera a que bajen los 20
+        while (bajaron < 20) {
+            wait();
+        }
+
+        // Reset
+        esperando = 0;
+        bajaron = 0;
+        asientos = 0;
+
+        notifyAll(); // habilita nueva tanda
+    }
+
+    private synchronized void bajar(int id, int autoAsignado) {
+
+        System.out.println("Visitante " + id
+                + " se bajo del auto " + autoAsignado);
+
+        bajaron++;
+
+        if (bajaron == 20) {
+            notifyAll();
+        }
     }
 }

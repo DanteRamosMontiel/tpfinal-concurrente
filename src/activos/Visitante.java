@@ -1,7 +1,7 @@
 package activos;
 
-import java.util.Random;
 import compartidos.Parque;
+import java.util.Random;
 
 public class Visitante extends Thread {
 
@@ -40,14 +40,13 @@ public class Visitante extends Thread {
                         // MONTANIA 
                         boolean montania = parque.entrarMontania(this);
                         if (montania) {
-                            System.out.println("El visitante N°" + id +
-                                    " entró a la fila de la montania rusa");
+                            System.out.println("El visitante N°" + id
+                                    + " entró a la fila de la montania rusa");
                             parque.subirVagonMontania(id);
                         } else {
-                            System.out.println("El visitante N°" + id +
-                                    "No pudo entrar a la montaña rusa, abandona el juego");
+                            System.out.println("El visitante N°" + id
+                                    + "No pudo entrar a la montaña rusa, abandona el juego");
                         }
-                        
                         break;
                     case 1:
                         // AUTOS CHOCADORES PADRE
@@ -56,14 +55,10 @@ public class Visitante extends Thread {
                         break;
                     case 2:
                         // REALIDAD VIRTUAL
-                      
                         parque.entrarRealidadVirtual(id);
                         Thread.sleep(2000);
-
                         parque.salirRealidadVirtual(id);
-                        
-
-                         break;
+                        break;
                     default:
                         break;
                 }
