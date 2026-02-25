@@ -33,7 +33,7 @@ public class Visitante extends Thread {
             // SACARIA LOS TOMO/SOLTO MOLINETE
 
             while (true) {
-                int random = rand.nextInt(0, 2);
+                int random = rand.nextInt(3);
 
                 switch (random) {
                     case 0:
@@ -54,6 +54,16 @@ public class Visitante extends Thread {
                         System.out.println("El visitante N°" + id + " entró a la fila de los autos chocadores");
                         parque.entrarAutosChocadores(id);
                         break;
+                    case 2:
+                        // REALIDAD VIRTUAL
+                      
+                        parque.entrarRealidadVirtual(id);
+                        Thread.sleep(2000);
+
+                        parque.salirRealidadVirtual(id);
+                        
+
+                         break;
                     default:
                         break;
                 }

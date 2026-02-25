@@ -8,7 +8,7 @@ import compartidos.Parque;
 public class Main {
     public static void main(String[] args) {
         Parque parque = new Parque(5);
-        Visitante[] visitantes = new Visitante[50];
+        Visitante[] visitantes = new Visitante[25];
         //Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);
         sim.start();
