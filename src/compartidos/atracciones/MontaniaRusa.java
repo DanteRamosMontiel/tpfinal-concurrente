@@ -7,17 +7,18 @@ import java.util.concurrent.Semaphore;
 
 public class MontaniaRusa {
 
-    private BlockingQueue<Visitante> colaParaSubir;
-    private Semaphore habilitado; // controla 5 por tanda
-    private Semaphore todosSentados; // barrera de 5
-    private Semaphore esperarViaje; // espera fin del viaje
-    private Semaphore todosBajaron = new Semaphore(0);
+    private final BlockingQueue<Visitante> colaParaSubir;
+    private final Semaphore habilitado; // controla 5 por tanda
+    private final Semaphore todosSentados; // barrera de 5
+    private final Semaphore esperarViaje; // espera fin del viaje
+    private final Semaphore todosBajaron;
 
     public MontaniaRusa() {
         this.colaParaSubir = new ArrayBlockingQueue<>(10); // espacio de espera
         this.habilitado = new Semaphore(5);
         this.todosSentados = new Semaphore(0);
         this.esperarViaje = new Semaphore(0);
+        this.todosBajaron = new Semaphore(0);
     }
 
     // Intenta entrar a la cola
@@ -38,7 +39,7 @@ public class MontaniaRusa {
     // Hilo de la montaña
     public void iniciarViaje() throws InterruptedException {
         todosSentados.acquire(5);
-   
+
     }
 
     public void terminarViaje() throws InterruptedException {
