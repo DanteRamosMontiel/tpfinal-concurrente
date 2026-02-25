@@ -1,6 +1,6 @@
 package activos.extras;
 
-import compartidos.*;
+import compartidos.Parque;
 
 public class Hora extends Thread {
 
@@ -13,7 +13,7 @@ public class Hora extends Thread {
     public void run() {
         while (true) {
             try {
-                Thread.sleep(5000); // Simula el paso del tiempo (20 segundo = 1 hora)
+                Thread.sleep(10000); // Simula el paso del tiempo (10 segundo = 1 hora)
                 elParque.cambiarHora();
             } catch (InterruptedException e) {
             }

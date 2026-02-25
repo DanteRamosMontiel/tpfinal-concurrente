@@ -1,5 +1,6 @@
 package compartidos;
 
+import activos.Visitante;
 import compartidos.atracciones.*;
 import compartidos.shopping.*;
 import java.util.Random;
@@ -35,8 +36,8 @@ public class Parque {
             molinetes[i] = new Semaphore(1);
         }
         this.chequeoHorario = new Semaphore(1);
-        this.abierto = false;
-        this.horaActual = 8;
+        this.abierto = true;
+        this.horaActual = 9;
         this.autosChocadores = new AutosChocadores();
         this.montaniaRusa = new MontaniaRusa();
         this.realidadVirtual = new RealidadVirtual();
@@ -115,4 +116,45 @@ public class Parque {
     private void hecharGente() throws InterruptedException {
 
     }
+
+    //Métodos de montania rusa
+    //Para visitantes
+    public boolean entrarMontania(Visitante v) throws InterruptedException{
+        return montaniaRusa.entrar(v);
+    }
+
+    public Visitante subirVagonMontania() throws InterruptedException{
+        return montaniaRusa.subirAlVagon();
+    }
+
+    public void esperarMontania() throws InterruptedException{
+        montaniaRusa.esperarMontania();
+    }
+
+    public void bajarMontania() throws InterruptedException{
+        montaniaRusa.bajar();
+    }
+
+    // //Para monitoreo
+    // public void iniciarViajeMontania() throws InterruptedException{
+    //     montaniaRusa.iniciarViaje();
+    // }
+
+    // public void terminarViajeMontania(){
+    //     montaniaRusa.terminarViaje();   
+    // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
