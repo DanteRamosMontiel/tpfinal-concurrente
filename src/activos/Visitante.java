@@ -41,7 +41,7 @@ public class Visitante extends Thread {
             while (i < 5) {
                 //int random = rand.nextInt(3);
 
-                switch (3) {
+                switch (i) {
                     case 0:
                         // MONTANIA 
                         boolean montania = parque.entrarMontania(this);
@@ -71,13 +71,13 @@ public class Visitante extends Thread {
                         break;
                     case 3:
                         // GOMONES
-                       /*  if (true) {
+                       if (rand.nextBoolean()) {
                             System.out.println("El visitante N°" + id + " quiere usar una bicicleta");
                             parque.usarBicicleta(id);
                         } else {
                             System.out.println("El visitante N°" + id + " quiere tomar el tren");
                             parque.subirTren(id); 
-                        }*/ 
+                        }
                          
                         System.out.println("El visitante N°" + id + " entró a la fila de los gomones");
                         parque.usarGomon(id);
