@@ -2,9 +2,11 @@ package compartidos;
 
 import activos.Visitante;
 import compartidos.atracciones.*;
+import compartidos.extras.recorridoAGomones;
 import compartidos.shopping.*;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Parque {
 
@@ -20,6 +22,7 @@ public class Parque {
     private AutosChocadores autosChocadores;
     private MontaniaRusa montaniaRusa;
     private RealidadVirtual realidadVirtual;
+    private CarreraGomones carreraGomones;
 
     // Shopping
     private AreaPremios areaPremios;
@@ -28,6 +31,9 @@ public class Parque {
 
     // Extras
     private Random rand;
+
+    // recurso para tren y bicis
+    private recorridoAGomones recorrido;
 
     // Constructor
     public Parque(int cantMolinetes) {
@@ -45,7 +51,9 @@ public class Parque {
         this.areaPremios = new AreaPremios();
         this.comedor = new Comedor();
         this.espectaculo = new Espectaculo();
-       
+        this.carreraGomones = new CarreraGomones(10);        
+        // inicializar el recurso compartido para recorridos en gomones
+        this.recorrido = new recorridoAGomones();
     }
 
     public int tomarMolinete() throws InterruptedException {
@@ -137,6 +145,27 @@ public class Parque {
      montaniaRusa.terminarViaje();  
     }
 
+    //-----------------------Métodos de recorrido en gomones (tren + bicis) --------
+    //visitante usa el tren
+    public void subirTren(int id) throws InterruptedException {
+        recorrido.subirTren(id);
+    }
+
+    // hilo tren llama a este método en bucle para procesar tandas
+    public void gestionarTren() throws InterruptedException {
+        recorrido.cicloTren();
+    }
+
+    // visitante usa una bicicleta
+    public void usarBicicleta(int id) throws InterruptedException {
+        recorrido.usarBicicleta(id);
+    }
+
+    // cada hilo bicicleta llama esto para atender a un visitante
+    public void gestionarBicicleta(int bikeId) throws InterruptedException {
+        recorrido.cicloBicicleta(bikeId);
+    }
+
     //-----------------------Métodos de autos chocadores ---------------------------------
     // Para visitantes
 
@@ -163,9 +192,31 @@ public class Parque {
       return realidadVirtual.salir(id);
     }
 
+    
+    //----------------------Metodos para Gomones---------------------------------
+    public void usarGomon(int id) throws InterruptedException {
+        carreraGomones.usarGomon(id);
+    }
+    public int[] CicloGomon(int gomonId,int cantVisitantes) throws InterruptedException {
+        return carreraGomones.cicloGomones(gomonId, cantVisitantes);
+    }
+
+    public void finCicloGomon(int gomonId,int[] visitantes) throws InterruptedException {
+        carreraGomones.finCicloGomones(gomonId, visitantes);
+    }
+    public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
+        return carreraGomones.esperarBolsosCamion();
+    }
+
+    public void finCamion() throws InterruptedException {
+        carreraGomones.finViajeCamion();
+    }
+
     //-----------------------Métodos de tienda de premios ---------------------------------
-    // Para visitantes y asistente de premios
+    //------------------ Para visitantes y asistente de premios----------------------------
     public int entrarTiendaPremios(int id,int n) throws InterruptedException{
       return areaPremios.canjearPremio(id, n);
     }
+
+
 }

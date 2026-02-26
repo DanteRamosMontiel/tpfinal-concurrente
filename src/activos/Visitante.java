@@ -41,7 +41,7 @@ public class Visitante extends Thread {
             while (i < 5) {
                 //int random = rand.nextInt(3);
 
-                switch (i) {
+                switch (3) {
                     case 0:
                         // MONTANIA 
                         boolean montania = parque.entrarMontania(this);
@@ -54,7 +54,7 @@ public class Visitante extends Thread {
                             System.out.println("El visitante N°" + id + "No pudo entrar a la montaña rusa, abandona el juego");
                         }
                         break;
-                    case 700:
+                    case 1:
                         // AUTOS CHOCADORES PADRE
                         System.out.println("El visitante N°" + id + " entró a la fila de los autos chocadores");
                         puntos = parque.entrarAutosChocadores(id);
@@ -69,6 +69,19 @@ public class Visitante extends Thread {
                         this.puntosDisponibles += puntos;
                         System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
                         break;
+                    case 3:
+                        // GOMONES
+                       /*  if (true) {
+                            System.out.println("El visitante N°" + id + " quiere usar una bicicleta");
+                            parque.usarBicicleta(id);
+                        } else {
+                            System.out.println("El visitante N°" + id + " quiere tomar el tren");
+                            parque.subirTren(id); 
+                        }*/ 
+                         
+                        System.out.println("El visitante N°" + id + " entró a la fila de los gomones");
+                        parque.usarGomon(id);
+                        break;
                     case 4:
                         // 1. Entrega sus puntos y espera que el asistente los reciba
                         parque.entrarTiendaPremios(id, this.puntosDisponibles);
@@ -79,6 +92,7 @@ public class Visitante extends Thread {
 
                         System.out.println("El visitante N°" + id + " salió de la tienda. Saldo final: " + this.puntosDisponibles);
                         break;
+                    
                     default:
                         break;
                 }

@@ -1,45 +1,72 @@
 package main;
 
 import activos.Visitante;
-import activos.extras.AsistentePremios;
-import activos.extras.Hora;
+import activos.extras.*;
+// para tren y bicicletas
 import activos.simulaciones.*;
 import compartidos.Parque;
+import java.util.Random;
+
+
 
 public class Main {
+
     public static void main(String[] args) {
+        int cantidadBicicletas = 5; // por ejemplo, 5 bicicletas en el parque
         Parque parque = new Parque(5);
-        Visitante[] visitantes = new Visitante[1];
-        //Montaña rusa
+        Random random = new Random();
+        // crear suficientes visitantes para que el tren pueda arrancar
+        Visitante[] visitantes = new Visitante[50];
+
+        // Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);
         sim.start();
 
-        //Autos chocadores
+        // Autos chocadores
         simulacionAutosC simAC = new activos.simulaciones.simulacionAutosC(parque);
         simAC.start();
 
-        //Asistente premios
-        AsistentePremios asistente = new AsistentePremios(parque);      
+
+        // Asistente premios
+        AsistentePremios asistente = new AsistentePremios(parque);
         asistente.start();
 
-        //Hora
+        // Hora
         Hora h = new Hora(parque);
         for (int i = 0; i < visitantes.length; i++) {
-            visitantes[i] = new Visitante(i+900, parque);
+            visitantes[i] = new Visitante(i + 900, parque);
         }
         for (int i = 0; i < visitantes.length; i++) {
             visitantes[i].start();
         }
         h.start();
 
-/* 
-  _    _      __     __   ____  _    _ ______  __      ______  _ __      ________ _____                _____ ______ _______ ______          _____    _      ____   _____  __      __     _      ____  _____  ______  _____   _____  ______   _                _____         _______ _____            _____ _____ _____ ____  _   _ ______  _____    ______  _____ _______       _   _   ______ _   _   __   _____        _____              _____  ______ ____  ____  _    _  _____ 
- | |  | |   /\\ \   / /  / __ \| |  | |  ____| \ \    / / __ \| |\ \    / /  ____|  __ \      /\      / ____|  ____|__   __|  ____|   /\   |  __ \  | |    / __ \ / ____| \ \    / /\   | |    / __ \|  __ \|  ____|/ ____| |  __ \|  ____| | |        /\    / ____|     /\|__   __|  __ \     /\   / ____/ ____|_   _/ __ \| \ | |  ____|/ ____|  |  ____|/ ____|__   __|/\   | \ | | |  ____| \ | | /_ | |  __ \ /\   |  __ \     /\     |  __ \|  ____|  _ \|  _ \| |  | |/ ____|
- | |__| |  /  \\ \_/ /  | |  | | |  | | |__     \ \  / / |  | | | \ \  / /| |__  | |__) |    /  \    | (___ | |__     | |  | |__     /  \  | |__) | | |   | |  | | (___    \ \  / /  \  | |   | |  | | |__) | |__  | (___   | |  | | |__    | |       /  \  | (___      /  \  | |  | |__) |   /  \ | |   | |      | || |  | |  \| | |__  | (___    | |__  | (___    | |  /  \  |  \| | | |__  |  \| |  | | | |__) /  \  | |__) |   /  \    | |  | | |__  | |_) | |_) | |  | | |  __ 
- |  __  | / /\ \\   /   | |  | | |  | |  __|     \ \/ /| |  | | |  \ \/ / |  __| |  _  /    / /\ \    \___ \|  __|    | |  |  __|   / /\ \ |  _  /  | |   | |  | |\___ \    \ \/ / /\ \ | |   | |  | |  _  /|  __|  \___ \  | |  | |  __|   | |      / /\ \  \___ \    / /\ \ | |  |  _  /   / /\ \| |   | |      | || |  | | . ` |  __|  \___ \   |  __|  \___ \   | | / /\ \ | . ` | |  __| | . ` |  | | |  ___/ /\ \ |  _  /   / /\ \   | |  | |  __| |  _ <|  _ <| |  | | | |_ |
- | |  | |/ ____ \| |    | |__| | |__| | |____     \  / | |__| | |___\  /  | |____| | \ \   / ____ \   ____) | |____   | |  | |____ / ____ \| | \ \  | |___| |__| |____) |    \  / ____ \| |___| |__| | | \ \| |____ ____) | | |__| | |____  | |____ / ____ \ ____) |  / ____ \| |  | | \ \  / ____ \ |___| |____ _| || |__| | |\  | |____ ____) |  | |____ ____) |  | |/ ____ \| |\  | | |____| |\  |  | | | |  / ____ \| | \ \  / ____ \  | |__| | |____| |_) | |_) | |__| | |__| |
- |_|  |_/_/    \_\_|     \___\_\\____/|______|     \/   \____/|______\/   |______|_|  \_\ /_/    \_\ |_____/|______|  |_|  |______/_/    \_\_|  \_\ |______\____/|_____/      \/_/    \_\______\____/|_|  \_\______|_____/  |_____/|______| |______/_/    \_\_____/  /_/    \_\_|  |_|  \_\/_/    \_\_____\_____|_____\____/|_| \_|______|_____( ) |______|_____/   |_/_/    \_\_| \_| |______|_| \_|  |_| |_| /_/    \_\_|  \_\/_/    \_\ |_____/|______|____/|____/ \____/ \_____|
-                                                                                                                                                                                                                                                                                                                                               |/                                                                                                                                   
-*/                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+
+        // ----------------------------------Gomones (tren + bicicletas)----------------------
+        // INICIAR TREN
+        Tren tren = new Tren(parque);
+        tren.start();
+
+        // arrancar bicicletas
+        for (int i = 0; i < cantidadBicicletas; i++) {
+            Bicicleta bici = new Bicicleta(i + 1, parque);
+            bici.start();
+        }
+        // arrancar camioneta
+        Camioneta camion = new Camioneta(parque);
+        camion.start();
+
+        // arrancar gomones
+        int cantidadGomones = 12;
+        int i = 0;
+
+        while (i < cantidadGomones) {
+            int capacidad = random.nextBoolean() ? 1 : 2;
+            Gomones gomon = new Gomones(capacidad, parque,i);
+            gomon.start();
+            i++;
+        }
+
+       
     }
 }
