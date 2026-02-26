@@ -1,6 +1,7 @@
 package main;
 
 import activos.Visitante;
+import activos.extras.AsistentePremios;
 import activos.extras.Hora;
 import activos.simulaciones.*;
 import compartidos.Parque;
@@ -8,7 +9,7 @@ import compartidos.Parque;
 public class Main {
     public static void main(String[] args) {
         Parque parque = new Parque(5);
-        Visitante[] visitantes = new Visitante[25];
+        Visitante[] visitantes = new Visitante[1];
         //Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);
         sim.start();
@@ -17,6 +18,9 @@ public class Main {
         simulacionAutosC simAC = new activos.simulaciones.simulacionAutosC(parque);
         simAC.start();
 
+        //Asistente premios
+        AsistentePremios asistente = new AsistentePremios(parque);      
+        asistente.start();
 
         //Hora
         Hora h = new Hora(parque);

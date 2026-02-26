@@ -7,7 +7,7 @@ public class AutosChocadores {
     private int asientos = 0;      // para asignar autos
     private boolean enCurso = false;
 
-    public synchronized void entrarAutosChocadores(int id) throws InterruptedException {
+    public synchronized int entrarAutosChocadores(int id) throws InterruptedException {
 
         // Espera si ya hay 20 personas
         while (esperando == 20) {
@@ -37,6 +37,8 @@ public class AutosChocadores {
         }
 
         bajar(id, autoAsignado);
+
+        return 13; //puntos ganados por el visitante al jugar a los autos chocadores
     }
 
     public synchronized void iniciarAutos() throws InterruptedException {

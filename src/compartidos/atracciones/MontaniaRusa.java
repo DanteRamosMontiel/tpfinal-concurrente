@@ -15,7 +15,7 @@ public class MontaniaRusa {
 
     public MontaniaRusa() {
         this.colaParaSubir = new ArrayBlockingQueue<>(10); // espacio de espera
-        this.habilitado = new Semaphore(5);
+        this.habilitado = new Semaphore(1);
         this.todosSentados = new Semaphore(0);
         this.esperarViaje = new Semaphore(0);
         this.todosBajaron = new Semaphore(0);
@@ -27,25 +27,26 @@ public class MontaniaRusa {
     }
 
     // Subir al vagón
-    public void subirAlVagon(int id) throws InterruptedException {
+    public int subirAlVagon(int id) throws InterruptedException {
         colaParaSubir.take();
         habilitado.acquire();
         System.out.println("Visitante " + id + " se sentó en el vagon");
         todosSentados.release();
         esperarViaje.acquire();
         bajar(id);
+        return 16; // puntos que gana por subir a la montaña rusa
     }
 
     // Hilo de la montaña
     public void iniciarViaje() throws InterruptedException {
-        todosSentados.acquire(5);
+        todosSentados.acquire(1);
 
     }
 
     public void terminarViaje() throws InterruptedException {
-        esperarViaje.release(5); // libera pasajeros
-        todosBajaron.acquire(5); // espera que los 5 bajen
-        habilitado.release(5); // recién ahora habilita nueva tanda
+        esperarViaje.release(1); // libera pasajeros
+        todosBajaron.acquire(1); // espera que los 5 bajen
+        habilitado.release(1); // recién ahora habilita nueva tanda
     }
 
     private void bajar(int id) {

@@ -124,8 +124,8 @@ public class Parque {
         return montaniaRusa.entrar(v);
     }
 
-    public void subirVagonMontania(int id) throws InterruptedException{
-       montaniaRusa.subirAlVagon(id);
+    public int subirVagonMontania(int id) throws InterruptedException{
+       return montaniaRusa.subirAlVagon(id);
     }
 
     //Para monitoreo
@@ -140,8 +140,8 @@ public class Parque {
     //-----------------------Métodos de autos chocadores ---------------------------------
     // Para visitantes
 
-    public void entrarAutosChocadores(int id) throws InterruptedException{
-      autosChocadores.entrarAutosChocadores(id);
+    public int entrarAutosChocadores(int id) throws InterruptedException{
+      return autosChocadores.entrarAutosChocadores(id);
     }
 
     //Para monitoreo
@@ -158,19 +158,14 @@ public class Parque {
     public void entrarRealidadVirtual(int id) throws InterruptedException{
       realidadVirtual.entrar(id);
     }
-    public void salirRealidadVirtual(int id){
-      realidadVirtual.salir(id);
+
+    public int salirRealidadVirtual(int id){
+      return realidadVirtual.salir(id);
     }
 
-
-
-
-
-
-
-
-
-
-
-
+    //-----------------------Métodos de tienda de premios ---------------------------------
+    // Para visitantes y asistente de premios
+    public int entrarTiendaPremios(int id,int n) throws InterruptedException{
+      return areaPremios.canjearPremio(id, n);
+    }
 }

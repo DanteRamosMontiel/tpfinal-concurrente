@@ -37,7 +37,7 @@ public class RealidadVirtual {
         }
     }
 
-    public void salir(int id) {
+    public int salir(int id) {
         lock.lock();
         try {
             visores++;
@@ -50,5 +50,6 @@ public class RealidadVirtual {
         } finally {
             lock.unlock();
         }
+        return 19; //puntos ganados por el visitante al jugar a la realidad virtual
     }
 }
