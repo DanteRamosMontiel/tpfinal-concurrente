@@ -2,7 +2,6 @@ package main;
 
 import activos.Visitante;
 import activos.extras.*;
-// para tren y bicicletas
 import activos.simulaciones.*;
 import compartidos.Parque;
 import java.util.Random;
@@ -16,7 +15,7 @@ public class Main {
         Parque parque = new Parque(5);
         Random random = new Random();
         // crear suficientes visitantes para que el tren pueda arrancar
-        Visitante[] visitantes = new Visitante[50];
+        Visitante[] visitantes = new Visitante[8];
 
         // Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);
@@ -25,7 +24,6 @@ public class Main {
         // Autos chocadores
         simulacionAutosC simAC = new activos.simulaciones.simulacionAutosC(parque);
         simAC.start();
-
 
         // Asistente premios
         AsistentePremios asistente = new AsistentePremios(parque);

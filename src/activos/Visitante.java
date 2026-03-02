@@ -38,10 +38,10 @@ public class Visitante extends Thread {
             // ACA YO PONDRIA UN SOUT QUE INDIQUE QUE YA ENTRO AL PARQUE AL VISITANTE Y
             // SACARIA LOS TOMO/SOLTO MOLINETE
 
-            while (i < 5) {
+            while (i < 100) {
                 //int random = rand.nextInt(3);
 
-                switch (i) {
+                switch (5) {
                     case 0:
                         // MONTANIA 
                         boolean montania = parque.entrarMontania(this);
@@ -83,6 +83,7 @@ public class Visitante extends Thread {
                         parque.usarGomon(id);
                         break;
                     case 4:
+                        // TIENDA DE PREMIOS
                         // 1. Entrega sus puntos y espera que el asistente los reciba
                         parque.entrarTiendaPremios(id, this.puntosDisponibles);
 
@@ -92,7 +93,20 @@ public class Visitante extends Thread {
 
                         System.out.println("El visitante N°" + id + " salió de la tienda. Saldo final: " + this.puntosDisponibles);
                         break;
-                    
+                    case 5:
+                        // COMEDOR
+                        Object[] resultado = parque.entrarComedor();
+                        boolean comedor = (boolean) resultado[0];
+                        if (comedor) {
+                            System.out.println("El visitante N°" + id + " entró al comedor y se sentó a comer");
+                            Thread.sleep(3000); // Simula el tiempo que tarda en comer
+                            System.out.println("El visitante N°" + id + " terminó de comer y salió del comedor");
+                            parque.salirComedor((int)resultado[1]);
+                        } else {
+                            System.out.println("El visitante N°" + id + " no pudo entrar al comedor, está lleno");
+                            Thread.sleep(3000);
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -100,7 +114,8 @@ public class Visitante extends Thread {
                 i++;
             }
 
-        } catch (InterruptedException e) {
+        } catch (Exception e) {
+            System.out.println("Algo salió mal.");
         }
     }
 }

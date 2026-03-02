@@ -5,7 +5,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
-public class recorridoAGomones {
+public class RecorridoAGomones {
 
     // ---------- tren --------------------------------------------------
     private final Semaphore visitantesEnTren = new Semaphore(0);

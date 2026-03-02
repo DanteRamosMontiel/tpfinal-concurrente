@@ -2,11 +2,11 @@ package compartidos;
 
 import activos.Visitante;
 import compartidos.atracciones.*;
-import compartidos.extras.recorridoAGomones;
+import compartidos.extras.RecorridoAGomones;
 import compartidos.shopping.*;
 import java.util.Random;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 
 public class Parque {
 
@@ -33,7 +33,7 @@ public class Parque {
     private Random rand;
 
     // recurso para tren y bicis
-    private recorridoAGomones recorrido;
+    private RecorridoAGomones recorrido;
 
     // Constructor
     public Parque(int cantMolinetes) {
@@ -49,11 +49,11 @@ public class Parque {
         this.rand = new Random();
         this.realidadVirtual = new RealidadVirtual(5, 10, 5);
         this.areaPremios = new AreaPremios();
-        this.comedor = new Comedor();
+        this.comedor = new Comedor(1);
         this.espectaculo = new Espectaculo();
         this.carreraGomones = new CarreraGomones(10);        
         // inicializar el recurso compartido para recorridos en gomones
-        this.recorrido = new recorridoAGomones();
+        this.recorrido = new RecorridoAGomones();
     }
 
     public int tomarMolinete() throws InterruptedException {
@@ -197,6 +197,7 @@ public class Parque {
     public void usarGomon(int id) throws InterruptedException {
         carreraGomones.usarGomon(id);
     }
+
     public int[] CicloGomon(int gomonId,int cantVisitantes) throws InterruptedException {
         return carreraGomones.cicloGomones(gomonId, cantVisitantes);
     }
@@ -204,6 +205,7 @@ public class Parque {
     public void finCicloGomon(int gomonId,int[] visitantes) throws InterruptedException {
         carreraGomones.finCicloGomones(gomonId, visitantes);
     }
+    
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
         return carreraGomones.esperarBolsosCamion();
     }
@@ -218,5 +220,12 @@ public class Parque {
       return areaPremios.canjearPremio(id, n);
     }
 
+    //-----------------------Métodos de comedor ---------------------------------
+    public Object[] entrarComedor() throws Exception {
+        return comedor.entrar();
+    }
 
+    public void salirComedor(int id) throws InterruptedException {
+        comedor.salir(id);
+    }
 }
