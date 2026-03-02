@@ -9,6 +9,8 @@ public class RealidadVirtual {
     private int manoplas;
     private int bases;
 
+    private boolean abierto = true;
+
     private final ReentrantLock lock = new ReentrantLock();
     private final Condition equipoDisponible = lock.newCondition();
 
@@ -23,8 +25,13 @@ public class RealidadVirtual {
     public void entrar(int id) throws InterruptedException {
         lock.lock();
         try {
-            while (visores < 1 || manoplas < 2 || bases < 1) {
+            // si cerraron la atracción abortar
+            while ((visores < 1 || manoplas < 2 || bases < 1) && abierto) {
                 equipoDisponible.await();
+            }
+            if (!abierto) {
+                System.out.println("RealidadVirtual cerrada, visitante " + id + " deambula");
+                throw new InterruptedException();
             }
 
             visores--;
@@ -51,5 +58,34 @@ public class RealidadVirtual {
             lock.unlock();
         }
         return 19; //puntos ganados por el visitante al jugar a la realidad virtual
+    }
+
+    public void cerrar() {
+        lock.lock();
+        try {
+            abierto = false;
+            equipoDisponible.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void abrir() {
+        lock.lock();
+        try {
+            abierto = true;
+            equipoDisponible.signalAll();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean estaVacio() {
+        lock.lock();
+        try {
+            return visores == 0 && manoplas == 0 && bases == 0;
+        } finally {
+            lock.unlock();
+        }
     }
 }

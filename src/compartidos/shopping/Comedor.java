@@ -7,6 +7,7 @@ public class Comedor {
 
     private Mesa mesas[];
     private Semaphore mutex;
+    private volatile boolean abierto = true;
 
     public Comedor(int cantMesas) {
         this.mesas = new Mesa[cantMesas];
@@ -24,6 +25,12 @@ public class Comedor {
         Object[] resultado = new Object[2];
         boolean sentado = false;
         int mesaAsignada = -1;
+
+        if (!abierto) {
+            resultado[0] = false;
+            resultado[1] = -1;
+            return resultado;
+        }
 
         mutex.acquire();
         try {
@@ -52,5 +59,25 @@ public class Comedor {
         if (idMesa >= 0 && idMesa < mesas.length) {
             mesas[idMesa].dejar();
         }
+    }
+
+    public void cerrar() {
+        abierto = false;
+    }
+
+    public void abrir() {
+        abierto = true;
+    }
+
+    public boolean estaVacio() throws InterruptedException {
+        boolean retorno= true;
+        for (Mesa m : mesas) {
+            if (m.estaOcupada()) {
+                retorno = false;
+                break;
+            }
+        }
+        return 
+        retorno;
     }
 }

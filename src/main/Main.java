@@ -15,7 +15,7 @@ public class Main {
         Parque parque = new Parque(5);
         Random random = new Random();
         // crear suficientes visitantes para que el tren pueda arrancar
-        Visitante[] visitantes = new Visitante[8];
+        Visitante[] visitantes = new Visitante[20];
 
         // Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);

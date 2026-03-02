@@ -22,11 +22,8 @@ public class Gomones extends Thread {
             while (!isInterrupted()) {
                 // pequeño retardo aleatorio para mezclar hilos de distinto tipo
                 Thread.sleep(rand.nextInt(100));
-
                 int[] visitantes = parque.CicloGomon(id, capacidad); // Gomon solicita pasajeros
-
                 Thread.sleep(6000); // Simula el tiempo del recorrido
-
                 parque.finCicloGomon(id, visitantes); // Libera el gomon para que los visitantes puedan salir y recuperar sus bolsos
             }
         } catch (InterruptedException e) {

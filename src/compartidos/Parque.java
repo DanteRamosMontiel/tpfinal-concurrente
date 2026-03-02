@@ -2,7 +2,7 @@ package compartidos;
 
 import activos.Visitante;
 import compartidos.atracciones.*;
-import compartidos.extras.RecorridoAGomones;
+import compartidos.extras.recorridoAGomones;
 import compartidos.shopping.*;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,8 +15,10 @@ public class Parque {
     private Semaphore chequeoHorario;
 
     // Horarios
-    private boolean abierto;
+    private boolean abierto;          // indica si el parque permite nuevos accesos por molinete
     private int horaActual;
+    private boolean expulsarVisitantes; // a las 23 los visitantes deben irse
+    private boolean atraccionesAbiertas; // control de estado de las atracciones
 
     // Atracciones
     private AutosChocadores autosChocadores;
@@ -33,7 +35,9 @@ public class Parque {
     private Random rand;
 
     // recurso para tren y bicis
-    private RecorridoAGomones recorrido;
+    private recorridoAGomones recorrido;
+    // lock para que visitantes esperen la reapertura sin busy-wait
+    private final Object aperturaLock = new Object();
 
     // Constructor
     public Parque(int cantMolinetes) {
@@ -44,6 +48,8 @@ public class Parque {
         this.chequeoHorario = new Semaphore(1);
         this.abierto = true;
         this.horaActual = 9;
+        this.expulsarVisitantes = false;
+        this.atraccionesAbiertas = true;
         this.autosChocadores = new AutosChocadores();
         this.montaniaRusa = new MontaniaRusa();
         this.rand = new Random();
@@ -53,13 +59,13 @@ public class Parque {
         this.espectaculo = new Espectaculo();
         this.carreraGomones = new CarreraGomones(10);        
         // inicializar el recurso compartido para recorridos en gomones
-        this.recorrido = new RecorridoAGomones();
+        this.recorrido = new recorridoAGomones();
     }
 
     public int tomarMolinete() throws InterruptedException {
         int indiceFinal = 0;
         chequeoHorario.acquire();
-        if (!abierto) {
+        if (!abierto || expulsarVisitantes) {
             chequeoHorario.release();
             indiceFinal = -1;
         } else {
@@ -91,10 +97,20 @@ public class Parque {
     public void cambiarHora() throws InterruptedException {
         chequeoHorario.acquire();
         horaActual++;
+        if (horaActual==24) {
+            horaActual = 0;
+        }
+        System.out.println(">> Hora actual: " + horaActual + ":00");
         switch (horaActual) {
             case 9:
                 this.abierto = true;
+                this.expulsarVisitantes = false;
                 System.out.println("EL PARQUE ABRIO");
+                abrirAtracciones();
+                // notificar a visitantes que estaban esperando la reapertura
+                synchronized (aperturaLock) {
+                    aperturaLock.notifyAll();
+                }
                 chequeoHorario.release();
                 break;
 
@@ -107,9 +123,15 @@ public class Parque {
             case 19:
                 System.out.println("LAS ATRACCIONES CERRARON");
                 chequeoHorario.release();
-                // cerrarAtracciones();
+                cerrarAtracciones();
                 break;
                 
+            case 23:
+                System.out.println("ES HORA DE SACAR A TODOS LOS VISITANTES");
+                expulsarVisitantes = true;
+                hecharGente();
+                chequeoHorario.release();
+                break;
             default:
                 chequeoHorario.release();
                 break;
@@ -117,13 +139,58 @@ public class Parque {
     }
 
     private void cerrarAtracciones() throws InterruptedException {
-        // autosChocadores.cerrar();
-        // montaniaRusa.cerrar();
-        // realidadVirtual.cerrar();
+        atraccionesAbiertas = false;
+        autosChocadores.cerrar();
+        montaniaRusa.cerrar();
+        realidadVirtual.cerrar();
+        carreraGomones.cerrar();
+        // cerrar recursos de recorrido (tren/bicicletas)
+        recorrido.cerrar();
+        comedor.cerrar();
+        areaPremios.cerrar();
+
+        // No esperamos activo por completo; los visitantes dentro detectarán el cierre
+        // y saldrán pronto. Evitamos bloquear la hora indefinidamente.
+        System.out.println("Atracciones marcadas como cerradas. Los visitantes serán desalojados.");
     }
 
     private void hecharGente() throws InterruptedException {
+        // expulsar visitantes se maneja en los propios hilos de visitante
+        // aquí solo garantizamos que las atracciones permanezcan cerradas
+        System.out.println("Se ha marcado la orden de expulsión; los visitantes terminarán su ciclo pronto.");
+        // aguardamos un momento para que los visitantes detecten y terminen
+        Thread.sleep(100);
+    }
 
+    /**
+     * Bloquea el visitante hasta que el parque deje de expulsar visitantes (reapertura)
+     */
+    public void esperarApertura() throws InterruptedException {
+        synchronized (aperturaLock) {
+            while (expulsarVisitantes) {
+                aperturaLock.wait();
+            }
+        }
+    }
+
+    private void abrirAtracciones() {
+        atraccionesAbiertas = true;
+        autosChocadores.abrir();
+        montaniaRusa.abrir();
+        realidadVirtual.abrir();
+        carreraGomones.abrir();
+        recorrido.abrir();
+        comedor.abrir();
+        areaPremios.abrir();
+        System.out.println("Las atracciones volvieron a abrir en la mañana.");
+    }
+
+    public boolean estanAtraccionesAbiertas() {
+        return atraccionesAbiertas;
+    }
+
+    public boolean debeExpulsarVisitantes() {
+        return expulsarVisitantes;
     }
 
     //-----------------------Métodos de montania rusa ---------------------------------

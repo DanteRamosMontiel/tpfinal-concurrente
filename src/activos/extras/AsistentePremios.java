@@ -32,6 +32,10 @@ public class AsistentePremios extends Thread {
     public void run() {
         while (true) {
             try {
+                if (parque.debeExpulsarVisitantes()) {
+                    System.out.println("Asistente de premios se retira, parque cerró completamente.");
+                    break;
+                }
                 // 1. Primer intercambio: Recibe los puntos del cliente
                 // El -1 es para que AreaPremios no imprima el mensaje de "Entró visitante"
                 int puntosCliente = parque.entrarTiendaPremios(-1, 0);

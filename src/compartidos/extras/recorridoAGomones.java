@@ -5,7 +5,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
-public class RecorridoAGomones {
+public class recorridoAGomones {
 
     // ---------- tren --------------------------------------------------
     private final Semaphore visitantesEnTren = new Semaphore(0);
@@ -14,9 +14,16 @@ public class RecorridoAGomones {
     // ---------- bicicletas --------------------------------------------
     private final BlockingQueue<Integer> colaBici = new ArrayBlockingQueue<>(50);
     private final HashMap<Integer, Semaphore> semBici = new HashMap<>();
+      
+    // marca cierre y libera hilos bloqueados
+    private boolean abierto = true;
 
     // ----------METODOS PARA VISITANTES ---------------------------------------------//
     public void subirTren(int id) throws InterruptedException {
+        if (!abierto) {
+            System.out.println("Visitante " + id + " quiso subir al tren pero las atracciones están cerradas");
+            return;
+        }
         System.out.println("Visitante " + id + " subió al tren y espera que arranque");
         visitantesEnTren.release();              // indica que hay un pasajero más
         trenListo.acquire();                     // queda esperando a que el viaje finalice
@@ -25,6 +32,10 @@ public class RecorridoAGomones {
 
 
     public void usarBicicleta(int visitorId) throws InterruptedException {
+        if (!abierto) {
+            System.out.println("Visitante " + visitorId + " quiso usar una bicicleta pero las atracciones están cerradas");
+            return;
+        }
         System.out.println("Visitante " + visitorId + " solicita una bicicleta");
         Semaphore sem = new Semaphore(0);
         semBici.put(visitorId, sem);        // se almacenará para que la bici lo despierte
@@ -36,6 +47,8 @@ public class RecorridoAGomones {
     //MANEJO DEL TREN
     public void cicloTren() throws InterruptedException {
         visitantesEnTren.acquire(15);// haya 15 liberaciones efectuadas por los visitantes
+        // si se liberó por cierre, abortar
+        if (!abierto) return;
         System.out.println(">> [TREN] 15 visitantes a bordo, el tren despierta y arranca");
         Thread.sleep(3000); // simulación del trayecto
         System.out.println(">> [TREN] recorrido terminado, dejando a los pasajeros");
@@ -45,7 +58,12 @@ public class RecorridoAGomones {
 
     //MANEJO DE LAS BICICLETAS
     public void cicloBicicleta(int bikeId) throws InterruptedException {
-        int visitor = colaBici.take(); // espera hasta que un visitante solicite
+        Integer visitor = colaBici.poll(500, java.util.concurrent.TimeUnit.MILLISECONDS);
+        if (visitor == null) {
+            // revisar estado de apertura
+            if (!abierto) return;
+            return; // nada por hacer este ciclo
+        }
         System.out.println("-- [BICI " + bikeId + "] despierta para el visitante " + visitor);
         Thread.sleep(2000); // paseo simulado
         System.out.println("-- [BICI " + bikeId + "] paseo finalizado con visitante " + visitor);
@@ -53,6 +71,25 @@ public class RecorridoAGomones {
         if (sem != null) {
             sem.release();          // libera al visitante
         }
+    }
+
+  
+
+    public synchronized void cerrar() {
+        abierto = false;
+        // liberar semáforos para que no queden hilos bloqueados
+        visitantesEnTren.release(1000);
+        trenListo.release(1000);
+        // liberar bicicletas encoladas
+        for (Semaphore s : semBici.values()) {
+            s.release();
+        }
+        semBici.clear();
+        colaBici.clear();
+    }
+
+    public synchronized void abrir() {
+        abierto = true;
     }
 }
 

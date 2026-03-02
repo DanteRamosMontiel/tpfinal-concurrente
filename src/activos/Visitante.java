@@ -23,14 +23,23 @@ public class Visitante extends Thread {
     @Override
     public void run() {
         try {
-            int m;
-            do {
-                m = parque.tomarMolinete();
-                if (m == -1) {
-                    System.out.println("PARQUE CERRADO");
-                    Thread.sleep(6000);
-                }
-            } while (m == -1);
+            while (true) {
+                int m;
+                // reset contador de actividades por "día"
+                i = 0;
+                do {
+                    m = parque.tomarMolinete();
+                    if (m == -1) {
+                        if (parque.debeExpulsarVisitantes()) {
+                            System.out.println("El visitante " + id + " fue expulsado temporalmente del parque, esperando reapertura.");
+                            parque.esperarApertura();
+                            // tras la espera, reintenta tomar molinete
+                        } else {
+                            System.out.println("PARQUE CERRADO para nuevos ingresos");
+                            Thread.sleep(6000);
+                        }
+                    }
+                } while (m == -1);
             System.out.println("El visitante N°" + id + " tomó el molinete " + m);
             Thread.sleep(2000);
             System.out.println("El visitante N°" + id + " solto el molinete " + m);
@@ -38,36 +47,55 @@ public class Visitante extends Thread {
             // ACA YO PONDRIA UN SOUT QUE INDIQUE QUE YA ENTRO AL PARQUE AL VISITANTE Y
             // SACARIA LOS TOMO/SOLTO MOLINETE
 
-            while (i < 100) {
+            while (i < 50 && !parque.debeExpulsarVisitantes()) {
+                // si las atracciones estuvieron cerradas, el visitante sólo deambula
+                if (!parque.estanAtraccionesAbiertas()) {
+                    System.out.println("El visitante " + id + " deambula por el parque");
+                    Thread.sleep(1000);
+                    i++;
+                    continue;
+                }
                 //int random = rand.nextInt(3);
 
-                switch (5) {
+                switch (i) {
                     case 0:
                         // MONTANIA 
-                        boolean montania = parque.entrarMontania(this);
-                        if (montania) {
-                            System.out.println("El visitante N°" + id + " entró a la fila de la montania rusa");
-                            puntos = parque.subirVagonMontania(id);
-                            this.puntosDisponibles += puntos;
-                            System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
-                        } else {
-                            System.out.println("El visitante N°" + id + "No pudo entrar a la montaña rusa, abandona el juego");
+                        try {
+                            boolean montania = parque.entrarMontania(this);
+                            if (montania) {
+                                System.out.println("El visitante N°" + id + " entró a la fila de la montania rusa");
+                                puntos = parque.subirVagonMontania(id);
+                                this.puntosDisponibles += puntos;
+                                System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
+                            } else {
+                                System.out.println("El visitante N°" + id + "No pudo entrar a la montaña rusa, abandona el juego");
+                            }
+                        } catch (InterruptedException e) {
+                            System.out.println("El visitante " + id + " fue interrumpido mientras estaba en la montaña rusa");
                         }
                         break;
                     case 1:
                         // AUTOS CHOCADORES PADRE
-                        System.out.println("El visitante N°" + id + " entró a la fila de los autos chocadores");
-                        puntos = parque.entrarAutosChocadores(id);
-                        this.puntosDisponibles += puntos;
-                        System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
+                        try {
+                            System.out.println("El visitante N°" + id + " entró a la fila de los autos chocadores");
+                            puntos = parque.entrarAutosChocadores(id);
+                            this.puntosDisponibles += puntos;
+                            System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
+                        } catch (InterruptedException e) {
+                            System.out.println("El visitante " + id + " fue interrumpido en autos chocadores");
+                        }
                         break;
                     case 2:
                         // REALIDAD VIRTUAL
-                        parque.entrarRealidadVirtual(id);
-                        Thread.sleep(2000);
-                        puntos = parque.salirRealidadVirtual(id);
-                        this.puntosDisponibles += puntos;
-                        System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
+                        try {
+                            parque.entrarRealidadVirtual(id);
+                            Thread.sleep(2000);
+                            puntos = parque.salirRealidadVirtual(id);
+                            this.puntosDisponibles += puntos;
+                            System.out.println("El visitante N°" + id + " ganó " + puntos + " puntos, ahora tiene:" + this.puntosDisponibles);
+                        } catch (InterruptedException e) {
+                            System.out.println("El visitante " + id + " se movió de la cola de realidad virtual");
+                        }
                         break;
                     case 3:
                         // GOMONES
@@ -79,8 +107,12 @@ public class Visitante extends Thread {
                             parque.subirTren(id); 
                         }
                          
-                        System.out.println("El visitante N°" + id + " entró a la fila de los gomones");
-                        parque.usarGomon(id);
+                        try {
+                            System.out.println("El visitante N°" + id + " entró a la fila de los gomones");
+                            parque.usarGomon(id);
+                        } catch (InterruptedException e) {
+                            System.out.println("El visitante " + id + " salió de la cola de gomones");
+                        }
                         break;
                     case 4:
                         // TIENDA DE PREMIOS
@@ -112,6 +144,7 @@ public class Visitante extends Thread {
                 }
 
                 i++;
+            }
             }
 
         } catch (Exception e) {

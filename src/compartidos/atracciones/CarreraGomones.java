@@ -24,6 +24,8 @@ public class CarreraGomones {
     // contador de visitantes esperando al camión en el destino
     private int visitantesEsperandoCamion = 0;
 
+    private volatile boolean abierto = true;
+
     public CarreraGomones(int cantGomones) {
         Bolso = new Object();
         this.cantGomonesEsperando = 0;
@@ -33,14 +35,23 @@ public class CarreraGomones {
 
     // -------------------------------------------------Metodo para visitantes---------------------------------------------//
     public void usarGomon(int id) throws InterruptedException {
+        if (!abierto) {
+            System.out.println("Gomones cerrados, visitante " + id + " deambula");
+            return;
+        }
         synchronized (Bolso) {
             Bolsos.put(id, new Object()); // cada visitante tiene su propio "bolso"
             System.out.println("Visitante " + id + " tomó un bolso");
         }
+        // si cierran mientras espera esto se convertirá en un simple retorno
         colaGomones.put(id); // se encola la petición para usar el gomon
         Semaphore sem = new Semaphore(0);
         semGomon.put(id, sem); // se almacena el semáforo para que el gomon lo despierte
         sem.acquire(); // el visitante espera a que el gomon lo libere
+        if (!abierto) {
+            // abandonar despues de despertar
+            return;
+        }
         System.out.println("Visitante " + id + " terminó la carrera en gomon, aguardando el camión");
 
         // El visitante llega al destino y se cuenta entre los que esperan el camión
@@ -66,6 +77,9 @@ public class CarreraGomones {
     // -------------------------------------------------Metodo para gomon---------------------------------------------//
 
     public int[] cicloGomones(int GomonId, int cant) throws InterruptedException {
+        if (!abierto) {
+            return new int[0];
+        }
         int visitor = colaGomones.take();
 
         int[] visitantes = new int[cant];
@@ -85,7 +99,7 @@ public class CarreraGomones {
                 
                 notifyAll();
             } else {
-                while (miVuelta == vueltasGomones) {
+                while (miVuelta == vueltasGomones && abierto) {
                     wait();
                 }
             }
@@ -106,6 +120,9 @@ public class CarreraGomones {
 
     // -------------------------------------------------Metodo para camion---------------------------------------------//
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
+        if (!abierto) {
+            return Bolsos;
+        }
         Camion.acquire(); // espera a que el camion esté lleno (esto no cambia)
         return Bolsos;
     }
@@ -125,4 +142,24 @@ public class CarreraGomones {
         System.out.println(">> [CAMION] vuelve a dormirse");
     }
 
+    /** marca la atracción cerrada y libera a los visitantes que esperan */
+    public synchronized void cerrar() {
+        abierto = false;
+        colaGomones.clear();
+        // liberar todos los semáforos de gomon para que no queden dormidos
+        for (Semaphore s : semGomon.values()) {
+            s.release();
+        }
+        semGomon.clear();
+        // liberar también a los que esperan al camión
+        EsperarCamion.release(1000);
+    }
+
+    public synchronized void abrir() {
+        abierto = true;
+    }
+
+    public synchronized boolean estaVacio() {
+        return colaGomones.isEmpty() && semGomon.isEmpty() && visitantesEsperandoCamion == 0;
+    }
 }
