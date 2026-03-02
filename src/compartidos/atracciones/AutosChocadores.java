@@ -66,17 +66,15 @@ public class AutosChocadores {
     }
 
     public synchronized void iniciarAutos() throws InterruptedException {
-        if (abierto) {
-
-            // Espera hasta que haya 20 personas
-            while (esperando < 20 && abierto) {
+        while (esperando < 20 || !abierto) {
                 wait();
             }
 
+    
             enCurso = true;
             notifyAll(); // despierta pasajeros
                   System.out.println("AUTOS CHOCADORES LLENOS, INICIANDO ATRACCION...");
-        }
+        
     }
 
     public synchronized void terminarAutos() throws InterruptedException {
@@ -94,6 +92,7 @@ public class AutosChocadores {
         asientos = 0;
 
         notifyAll(); // habilita nueva tanda
+           System.out.println("AUTOS CHOCADORES TERMINADOS, LISTOS PARA NUEVA TANDA...");
     }
 
     private synchronized void bajar(int id, int autoAsignado) {

@@ -14,8 +14,6 @@ public class simulacionAutosC extends Thread {
         while (true) {
             try {
                 parque.iniciarViajeAutosC();
-                ;
-          
                 Thread.sleep(7000);
                 Thread.sleep(2000);
                 parque.terminarViajeAutosC();

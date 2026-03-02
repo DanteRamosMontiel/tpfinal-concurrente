@@ -21,9 +21,8 @@ public class Camioneta extends Thread {
             while (!isInterrupted()) {
                 // Espera a que los visitantes suban y dejen sus bolsos
                 bolsosCamion = parque.esperarBolsosCamion();
-                System.out.println("Camioneta: Camion lleno, iniciando viaje.");
+              
                 Thread.sleep(4000); // Simula el tiempo del viaje
-                System.out.println("Camioneta: Llegamos al destino, los visitantes pueden recuperar sus bolsos.");
                 parque.finCamion(); // Indica que el viaje ha terminado para que los visitantes puedan recuperar sus bolsos
             }
         } catch (InterruptedException e) {

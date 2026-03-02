@@ -1,15 +1,10 @@
 package compartidos.atracciones;
 
-import compartidos.Parque;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
-import activos.extras.Camioneta;
-import activos.extras.Gomones;
+
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-
-import java.util.HashMap;
 
 public class CarreraGomones {
     private final Object Bolso;
@@ -23,6 +18,8 @@ public class CarreraGomones {
     private int vueltasGomones = 0;
     // contador de visitantes esperando al camión en el destino
     private int visitantesEsperandoCamion = 0;
+    // control para evitar vueltas simultaneas
+    private boolean vueltaEnProgreso = false;
 
     private volatile boolean abierto = true;
 
@@ -33,7 +30,8 @@ public class CarreraGomones {
 
     }
 
-    // -------------------------------------------------Metodo para visitantes---------------------------------------------//
+    // -------------------------------------------------Metodo para
+    // visitantes---------------------------------------------//
     public void usarGomon(int id) throws InterruptedException {
         if (!abierto) {
             System.out.println("Gomones cerrados, visitante " + id + " deambula");
@@ -74,56 +72,78 @@ public class CarreraGomones {
         }
     }
 
-    // -------------------------------------------------Metodo para gomon---------------------------------------------//
+    // -------------------------------------------------Metodo para
+    // gomon---------------------------------------------//
 
     public int[] cicloGomones(int GomonId, int cant) throws InterruptedException {
-        if (!abierto) {
-            return new int[0];
-        }
-        int visitor = colaGomones.take();
-
-        int[] visitantes = new int[cant];
-        visitantes[0] = visitor;
-        if (cant == 2) {
-            int visitor2 = colaGomones.take();
-            visitantes[1] = visitor2;
-        }
-        synchronized (this) {
-            int miVuelta = vueltasGomones;
-            cantGomonesEsperando++;
-            System.out.println("-- [GOMONES " + GomonId + " cap:" + cant + "] esperando a que se completen " + cantGomonesNecesarios + " para iniciar la carrera. Actualmente esperando: " + cantGomonesEsperando);
-            if (cantGomonesEsperando == cantGomonesNecesarios) {
-                vueltasGomones++;
-                cantGomonesEsperando = 0;
-                Camion.release();
-                
-                notifyAll();
-            } else {
-                while (miVuelta == vueltasGomones && abierto) {
+        int[] visitantes = new int[0];
+        if (abierto) {
+            // esperar a que la vuelta anterior se complete (camion entregue bolsos)
+            synchronized (this) {
+                while (vueltaEnProgreso && abierto) {
                     wait();
+                }
+                if (!abierto) {
+                    return visitantes; // parque cerrado
+                }
+            }
+
+            int visitor = colaGomones.take();
+
+            visitantes = new int[cant];
+            visitantes[0] = visitor;
+            if (cant == 2) {
+                int visitor2 = colaGomones.take();
+                visitantes[1] = visitor2;
+            }
+            synchronized (this) {
+                int miVuelta = vueltasGomones;
+                cantGomonesEsperando++;
+                System.out.println("-- [GOMONES " + GomonId + " cap:" + cant + "] esperando a que se completen "
+                        + cantGomonesNecesarios + " para iniciar la carrera. Actualmente esperando: "
+                        + cantGomonesEsperando);
+                if (cantGomonesEsperando == cantGomonesNecesarios) {
+                    vueltasGomones++;
+                    cantGomonesEsperando = 0;
+                    vueltaEnProgreso = true; // marca que hay una vuelta activa
+                    Camion.release();
+
+                    notifyAll();
+                } else {
+                    while (miVuelta == vueltasGomones && abierto) {
+                        wait();
+                    }
                 }
             }
         }
-
         return visitantes;
     }
 
     public void finCicloGomones(int GomonId, int[] visitantes) throws InterruptedException {
-        System.out.println("-- [GOMONES " + GomonId + "] carrera finalizada con visitantes " + visitantes[0]+ (visitantes.length > 1 ? " y " + visitantes[1] : ""));
-        for (int visitor : visitantes) {
-            Semaphore sem = semGomon.remove(visitor);
-            if (sem != null) {
-                sem.release(); // libera al visitante
+        // si el array está vacío (park cerrado), no hacer nada
+        if (visitantes.length != 0) {
+
+            System.out.println("-- [GOMONES " + GomonId + "] carrera finalizada con visitantes " + visitantes[0]
+                    + (visitantes.length > 1 ? " y " + visitantes[1] : ""));
+
+            for (int visitor : visitantes) {
+                Semaphore sem = semGomon.remove(visitor);
+                if (sem != null) {
+                    sem.release(); // libera al visitante
+                }
             }
         }
     }
 
-    // -------------------------------------------------Metodo para camion---------------------------------------------//
+    // -------------------------------------------------Metodo para
+    // camion---------------------------------------------//
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
-        if (!abierto) {
-            return Bolsos;
+        if (abierto) {
+            Camion.acquire(); // espera a que el camion esté lleno (esto no cambia)
+            System.out.println("Camioneta: Camion lleno, iniciando viaje.");
+        } else {
+            System.out.println("Camioneta: se intentó iniciar el viaje pero los gomones están cerrados, abortando.");
         }
-        Camion.acquire(); // espera a que el camion esté lleno (esto no cambia)
         return Bolsos;
     }
 
@@ -138,6 +158,11 @@ public class CarreraGomones {
             EsperarCamion.release(liberar); // libera a todos los visitantes que esperaban
         } else {
             System.out.println(">> [CAMION] no había visitantes esperando");
+        }
+        // marca que la vuelta se completó y los gomones pueden iniciar siguiente
+        synchronized (this) {
+            vueltaEnProgreso = false;
+            notifyAll(); // despierta gomones que estaban esperando
         }
         System.out.println(">> [CAMION] vuelve a dormirse");
     }

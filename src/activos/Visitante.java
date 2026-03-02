@@ -57,7 +57,7 @@ public class Visitante extends Thread {
                 }
                 //int random = rand.nextInt(3);
 
-                switch (i) {
+                switch (1) {
                     case 0:
                         // MONTANIA 
                         try {
