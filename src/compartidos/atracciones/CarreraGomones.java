@@ -20,7 +20,6 @@ public class CarreraGomones {
     private int visitantesEsperandoCamion = 0;
     // control para evitar vueltas simultaneas
     private boolean vueltaEnProgreso = false;
-
     private volatile boolean abierto = true;
 
     public CarreraGomones(int cantGomones) {
@@ -30,51 +29,47 @@ public class CarreraGomones {
 
     }
 
-    // -------------------------------------------------Metodo para
-    // visitantes---------------------------------------------//
+    // -------------------------------------------------Metodo para visitantes---------------------------------------------//
     public void usarGomon(int id) throws InterruptedException {
-        if (!abierto) {
-            System.out.println("Gomones cerrados, visitante " + id + " deambula");
-            return;
-        }
-        synchronized (Bolso) {
-            Bolsos.put(id, new Object()); // cada visitante tiene su propio "bolso"
-            System.out.println("Visitante " + id + " tomó un bolso");
-        }
-        // si cierran mientras espera esto se convertirá en un simple retorno
-        colaGomones.put(id); // se encola la petición para usar el gomon
-        Semaphore sem = new Semaphore(0);
-        semGomon.put(id, sem); // se almacena el semáforo para que el gomon lo despierte
-        sem.acquire(); // el visitante espera a que el gomon lo libere
-        if (!abierto) {
-            // abandonar despues de despertar
-            return;
-        }
-        System.out.println("Visitante " + id + " terminó la carrera en gomon, aguardando el camión");
-
-        // El visitante llega al destino y se cuenta entre los que esperan el camión
-        synchronized (this) {
-            visitantesEsperandoCamion++;
-        }
-
-        EsperarCamion.acquire(); // espera a que el camión lleve los bolsos al destino
-
-        // El camión llegó, el visitante reduce el contador
-        synchronized (this) {
-            visitantesEsperandoCamion--;
-        }
-
-        synchronized (Bolso) {
-            if (Bolsos.containsKey(id)) {
-                Bolsos.remove(id); // el visitante recupera su bolso
-                System.out.println("Visitante " + id + " recuperó su bolso");
+        if (abierto) {
+            synchronized (Bolso) {
+                Bolsos.put(id, new Object()); // cada visitante tiene su propio "bolso"
+                System.out.println("Visitante " + id + " tomó un bolso");
             }
+            // si cierran mientras espera esto se convertirá en un simple retorno
+            colaGomones.put(id); // se encola la petición para usar el gomon
+            Semaphore sem = new Semaphore(0);
+            semGomon.put(id, sem); // se almacena el semáforo para que el gomon lo despierte
+            sem.acquire(); // el visitante espera a que el gomon lo libere
+            if (abierto) {
+                // abandonar despues de despertar
+                System.out.println("Visitante " + id + " terminó la carrera en gomon, aguardando el camión");
+                // El visitante llega al destino y se cuenta entre los que esperan el camión
+                synchronized (this) {
+                    visitantesEsperandoCamion++;
+                }
+                EsperarCamion.acquire(); // espera a que el camión lleve los bolsos al destino
+                // El camión llegó, el visitante reduce el contador
+                synchronized (this) {
+                    visitantesEsperandoCamion--;
+                }
+
+                synchronized (Bolso) {
+                    if (Bolsos.containsKey(id)) {
+                        Bolsos.remove(id); // el visitante recupera su bolso
+                        System.out.println("Visitante " + id + " recuperó su bolso");
+                    }
+                }
+            } else {
+                System.out.println("Gomones cerrados, visitante " + id + " deambula");
+            }
+        } else {
+            System.out.println("Gomones cerrados, visitante " + id + " deambula");
+
         }
     }
 
-    // -------------------------------------------------Metodo para
-    // gomon---------------------------------------------//
-
+    // -------------------------------------------------Metodo para gomon---------------------------------------------//
     public int[] cicloGomones(int GomonId, int cant) throws InterruptedException {
         int[] visitantes = new int[0];
         if (abierto) {
@@ -87,9 +82,7 @@ public class CarreraGomones {
                     return visitantes; // parque cerrado
                 }
             }
-
             int visitor = colaGomones.take();
-
             visitantes = new int[cant];
             visitantes[0] = visitor;
             if (cant == 2) {
@@ -135,8 +128,7 @@ public class CarreraGomones {
         }
     }
 
-    // -------------------------------------------------Metodo para
-    // camion---------------------------------------------//
+    // -------------------------------------------------Metodo para camion---------------------------------------------//
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
         if (abierto) {
             Camion.acquire(); // espera a que el camion esté lleno (esto no cambia)
