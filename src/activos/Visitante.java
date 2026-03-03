@@ -57,7 +57,7 @@ public class Visitante extends Thread {
                 }
                 //int random = rand.nextInt(3);
 
-                switch (i) {
+                switch (1) {
                     case 0:
                         // MONTANIA 
                         try {
@@ -75,7 +75,7 @@ public class Visitante extends Thread {
                         }
                         break;
                     case 1:
-                        // AUTOS CHOCADORES PADRE
+                        // AUTOS CHOCADORES 
                         try {
                             System.out.println("El visitante N°" + id + " entró a la fila de los autos chocadores");
                             puntos = parque.entrarAutosChocadores(id);

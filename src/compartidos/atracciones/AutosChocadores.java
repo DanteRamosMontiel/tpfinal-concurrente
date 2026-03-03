@@ -12,121 +12,107 @@ public class AutosChocadores {
 
     public synchronized int entrarAutosChocadores(int id) throws InterruptedException {
         // si la atracción está cerrada no hacemos fila
-        if (!abierto) {
-            System.out.println("AutosChocadores cerrado: visitante " + id + " deambula");
-            return 0;
+        int retorno = 0;
+        if (abierto) {
+            // Espera si ya hay 20 personas o si cierran mientras espera
+            while (esperando == 20 && abierto) {
+                wait();
+            }
+            if (abierto) {
+                int autoAsignado = asientos / 2;
+                asientos++;
+                esperando++;
+                System.out.println("Visitante " + id + " se sentó en el auto " + autoAsignado);
+                // Si es el número 20, despierta al encargado
+                if (esperando == 20) {
+                    notifyAll();
+                }
+                // Espera a que inicie la atracción (o cierre)
+                while (!enCurso && abierto) {
+                    wait();
+                }
+                if (abierto) {
+                    // Espera a que termine
+                    while (enCurso && abierto) {
+                        wait();
+                    }
+                    if (abierto) {
+                        // se cerró en medio del viaje, forzamos salida rápida
+                        bajar(id, autoAsignado);
+                        retorno = 13; // puntos ganados por el visitante al jugar a los autos chocadores
+                    }else{
+                        bajar(id, autoAsignado);
+                        retorno=0;
+                        System.out.println("AutosChocadores cerró durante el viaje, " + id + " se va a deambular");
+                    }
+                }else{
+                    // se cerró antes de comenzar el viaje
+                    // ajustar contadores
+                    asientos--;
+                    esperando--;
+                    System.out.println("AutosChocadores cerró antes de iniciar el viaje, " + id + " se va a deambular");
+                }
+            } else {
+                System.out.println("AutosChocadores cerró mientras " + id + " esperaba, se va a deambular");
+            }
+        } else {
+            System.out.println("AutosChocadores está cerrado, " + id + " se va a deambular");
         }
-
-        // Espera si ya hay 20 personas o si cierran mientras espera
-        while (esperando == 20 && abierto) {
-            wait();
-        }
-        if (!abierto) {
-            System.out.println("AutosChocadores cerró mientras " + id + " esperaba, se va a deambular");
-            return 0;
-        }
-
-        int autoAsignado = asientos / 2;
-        asientos++;
-        esperando++;
-
-        System.out.println("Visitante " + id
-                + " se sentó en el auto " + autoAsignado);
-
-        // Si es el número 20, despierta al encargado
-        if (esperando == 20) {
-            notifyAll();
-        }
-
-        // Espera a que inicie la atracción (o cierre)
-        while (!enCurso && abierto) {
-            wait();
-        }
-        if (!abierto) {
-            // se cerró antes de comenzar el viaje
-            // ajustar contadores
-            asientos--;
-            esperando--;
-            return 0;
-        }
-
-        // Espera a que termine
-        while (enCurso && abierto) {
-            wait();
-        }
-        if (!abierto) {
-            // se cerró en medio del viaje, forzamos salida rápida
-            bajar(id, autoAsignado);
-            return 0;
-        }
-
-        bajar(id, autoAsignado);
-
-        return 13; // puntos ganados por el visitante al jugar a los autos chocadores
+        return retorno; // puntos ganados por el visitante al jugar a los autos chocadores
     }
 
     public synchronized void iniciarAutos() throws InterruptedException {
         while (esperando < 20 || !abierto) {
-                wait();
-            }
+            wait();
+        }
 
-    
-            enCurso = true;
-            notifyAll(); // despierta pasajeros
-                  System.out.println("AUTOS CHOCADORES LLENOS, INICIANDO ATRACCION...");
-        
+        enCurso = true;
+        notifyAll(); // despierta pasajeros
+        System.out.println("AUTOS CHOCADORES LLENOS, INICIANDO ATRACCION...");
+
     }
 
     public synchronized void terminarAutos() throws InterruptedException {
         enCurso = false;
         notifyAll(); // permite que bajen
-
         // Espera a que bajen los 20 o hasta que se cierre
         while (bajaron < 20 && abierto) {
             wait();
         }
-
         // Reset
         esperando = 0;
         bajaron = 0;
         asientos = 0;
-
         notifyAll(); // habilita nueva tanda
-           System.out.println("AUTOS CHOCADORES TERMINADOS, LISTOS PARA NUEVA TANDA...");
+        System.out.println("AUTOS CHOCADORES TERMINADOS, LISTOS PARA NUEVA TANDA...");
     }
 
     private synchronized void bajar(int id, int autoAsignado) {
         // en caso de cierre abrupto la persona puede bajar igualmente
-
         System.out.println("Visitante " + id
                 + " se bajo del auto " + autoAsignado);
-
         bajaron++;
-
         if (bajaron == 20) {
             notifyAll();
         }
     }
 
-    /**
-     * Marca la atracción como cerrada y despierta a todos los hilos
-     */
+    // Marca la atracción como cerrada y despierta a todos los hilos
+     
     public synchronized void cerrar() {
         abierto = false;
         notifyAll();
     }
 
-    /**
-     * Vuelve a abrir la atracción y permite operaciones normales
-     */
+    //Vuelve a abrir la atracción y permite operaciones normales
+     
     public synchronized void abrir() {
         abierto = true;
         notifyAll();
     }
 
-    /**
-     * Indica si actualmente no hay ningún visitante en espera o en viaje
-     */
+    // Indica si actualmente no hay ningún visitante en espera o en viaje
+    
     public synchronized boolean estaVacio() {
         return !enCurso && esperando == 0;
     }
