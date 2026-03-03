@@ -12,6 +12,7 @@ public class MontaniaRusa {
     private final Semaphore todosSentados; // barrera de 5
     private final Semaphore esperarViaje; // espera fin del viaje
     private final Semaphore todosBajaron;
+    private int sentados = 0;// contadores para saber cuántos pasajeros han sido sentados
 
     private boolean abierto = true;
 
@@ -25,111 +26,123 @@ public class MontaniaRusa {
 
     // Intenta entrar a la cola
     public boolean entrar(Visitante v) {
+        boolean retorno = false;
+        retorno = colaParaSubir.offer(v); // si está llena → se va
         if (!abierto) {
-            return false;
+            retorno = false;
         }
-        return colaParaSubir.offer(v); // si está llena → se va
-    }
 
-    // Subir al vagón
-    // contadores para saber cuántos pasajeros han sido sentados
-    private int sentados = 0;
+        return retorno;
+    }
 
     public int subirAlVagon(int id) throws InterruptedException {
-        // si la atracción cerró antes de subir, devolvemos 0
-        if (!abierto) {
-            System.out.println("Montania cerrada, visitante " + id + " no sube");
-            throw new InterruptedException();
-        }
-        // esperar a salir de la cola; usamos poll para poder despertar cuando cierren
-        while (true) {
-            if (!abierto) {
-                System.out.println("Montania cerrada mientras " + id + " esperaba, vuelve a deambular");
-                throw new InterruptedException();
+        int puntosGanados = 0;
+        boolean procesoExitoso = false;
+
+        // Solo intentamos adquirir el permiso si la atracción está abierta al llegar
+        if (abierto) {
+            if (colaParaSubir.size() == 10) {
+                System.out.println("[MONTAÑA RUSA] La cola de la montaña rusa está llena");
             }
-            Visitante v = colaParaSubir.poll(500, java.util.concurrent.TimeUnit.MILLISECONDS);
-            if (v != null) {
-                break;
-            }
-            // timeout, revalidar condición y seguir esperando
-        }
-        habilitado.acquire();
-        synchronized (this) {
-            if (!abierto) {
-                habilitado.release();
-                throw new InterruptedException();
-            }
-            sentados++;
-        }
-        System.out.println("Visitante " + id + " se sentó en el vagon");
-        todosSentados.release();
-        // notificar al hilo simulador que hay un nuevo pasajero
-        synchronized (this) {
-            notifyAll();
-        }
-        try {
-            esperarViaje.acquire();
-        } catch (InterruptedException e) {
-            // si se interrumpe por cierre, salimos
+            // 1. ESPERAMOS NUESTRO TURNO MIENTRAS SEGUIMOS EN LA FILA
+            habilitado.acquire();
+
+            // 2. CONSEGUIMOS LUGAR: Verificamos si sigue abierto y nos sacamos de la fila
             synchronized (this) {
-                sentados--; // ajustamos contador
+                if (abierto) {
+                    colaParaSubir.poll(); // Ahora sí salimos de la fila
+                    sentados++;
+                    procesoExitoso = true;
+                } else {
+                    // Si el parque cerró mientras esperábamos nuestro turno
+                    habilitado.release();
+                }
             }
-            throw e;
         }
-        bajar(id);
-        return 16; // puntos que gana por subir a la montaña rusa
+
+        // 3. FASE DE VIAJE
+        if (procesoExitoso) {
+            System.out.println("[MONTAÑA RUSA]Visitante " + id + " se sentó en el vagon");
+            todosSentados.release();
+
+            synchronized (this) {
+                notifyAll(); // Notificamos al simulador
+            }
+
+            try {
+                esperarViaje.acquire(); // Esperamos a que el viaje termine
+                bajar(id);
+                puntosGanados = 16;
+            } catch (InterruptedException e) {
+                // Revertimos cambios si hay interrupción del sistema
+                synchronized (this) {
+                    if (sentados > 0)
+                        sentados--;
+                }
+                throw e; // Relanzar la excepción real capturada es válido y necesario
+            }
+        } else {
+            // Mensaje unificado: cae aquí si nunca entró al primer if, o si no pasó el
+            // segundo
+            System.out.println("[MONTAÑA RUSA] Montania cerrada, el visitante " + id + " no pudo subir.");
+        }
+
+        // Único punto de retorno en todo el método
+        return puntosGanados;
     }
 
-    // Hilo de la montaña
+    // --------------HILO SIMULADOR DE LA MONTANIA------------
     public void iniciarViaje() throws InterruptedException {
-        // registrar hilo simulador para interrupciones
-        synchronized (this) {
-            // incluso si ya está en uso, sobrescribir no afecta
-        }
-
-        // esperar que la atracción esté abierta
+        boolean puedeIniciar = false;
+        // 1. Esperar a que la atracción abra
         synchronized (this) {
             while (!abierto) {
                 wait();
             }
         }
-
-        // bloquear hasta que llegue un grupo completo (5 pasajeros sentados) o se cierre
+        // 2. Intentar reunir a los pasajeros
         try {
             todosSentados.acquire(5);
+            // Solo si después de adquirir los permisos la montaña sigue abierta
+            if (abierto) {
+                puedeIniciar = true;
+            }
         } catch (InterruptedException e) {
-            // llegada de cierre, abandonar
-            return;
+            // Si se interrumpe (por cierre), simplemente no marcamos 'puedeIniciar' y
+            // dejamos que el método termine
+            Thread.currentThread().interrupt();
         }
-
-        // si se cerró mientras esperábamos, abandonamos sin iniciar
-        if (!abierto) {
-            return;
+        // 3. Ejecución del viaje
+        if (puedeIniciar) {
+            System.out.println("[MONTAÑA RUSA] MONTAÑA RUSA LLENA. INICIANDO VIAJE..." + " (Visitantes: " + sentados + ")"
+                    + "Visitantes en espera: " + colaParaSubir.size());
+        } else {
+            System.out.println("[MONTAÑA RUSA]El viaje no pudo iniciar (atracción cerrada o interrupción).");
         }
-
-        System.out.println("MONTAÑA RUSA LLENA. INICIANDO VIAJE...");
     }
 
     public void terminarViaje() throws InterruptedException {
-        if (!abierto) {
-            // si el parque cerró, los pasajeros ya fueron liberados en cerrar()
-            return;
+        if (abierto) {
+            // Liberar a todos los pasajeros sentados
+            esperarViaje.release(5);
+            // Esperar a que se bajen (barrera de sincronización)
+            todosBajaron.acquire(5);
+            // Habilitar el vagon para la siguiente tanda
+            habilitado.release(5);
+            synchronized (this) {
+                sentados = 0; // Reiniciamos el contador de forma segura
+            }
+            System.out.println("[MONTAÑA RUSA] VIAJE TERMINADO ...");
+        } else {
+            System.out.println("[MONTAÑA RUSA] Finalizando ciclo: la montaña ya se encuentra cerrada.");
         }
-        // liberar a todos los pasajeros sentados
-        esperarViaje.release(5);
-        // esperar a que se bajen (puede que algunos ya lo hayan hecho en cierre)
-        todosBajaron.acquire(5);
-        habilitado.release(5); // permite nueva tanda completa
-        synchronized (this) {
-            sentados = 0; // reiniciamos contador
-        }
-        System.out.println("VIAJE TERMINADO DE MONTAÑA RUSA...");
     }
 
     private void bajar(int id) {
-        System.out.println("Visitante " + id + " se bajo del vagon");
+        System.out.println("[MONTAÑA RUSA] Visitante " + id + " se bajo del vagon");
         synchronized (this) {
-            if (sentados > 0) sentados--;
+            if (sentados > 0)
+                sentados--;
         }
         todosBajaron.release();
     }

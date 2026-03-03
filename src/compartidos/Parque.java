@@ -57,8 +57,7 @@ public class Parque {
         this.areaPremios = new AreaPremios();
         this.comedor = new Comedor(1);
         this.espectaculo = new Espectaculo();
-        this.carreraGomones = new CarreraGomones(10);        
-        // inicializar el recurso compartido para recorridos en gomones
+        this.carreraGomones = new CarreraGomones(10);  
         this.recorrido = new recorridoAGomones();
     }
 
@@ -100,12 +99,12 @@ public class Parque {
         if (horaActual==24) {
             horaActual = 0;
         }
-        System.out.println(">> Hora actual: " + horaActual + ":00");
+        System.out.println(">> [PARQUE] Hora actual: " + horaActual + ":00");
         switch (horaActual) {
             case 9:
                 this.abierto = true;
                 this.expulsarVisitantes = false;
-                System.out.println("EL PARQUE ABRIO");
+                System.out.println(">> [PARQUE] EL PARQUE ABRIO");
                 abrirAtracciones();
                 // notificar a visitantes que estaban esperando la reapertura
                 synchronized (aperturaLock) {
@@ -116,18 +115,18 @@ public class Parque {
 
             case 18:
                 this.abierto = false;
-                System.out.println("EL PARQUE CERRO");
+                System.out.println(">> [PARQUE] EL PARQUE CERRO");
                 chequeoHorario.release();
                 break;
 
             case 19:
-                System.out.println("LAS ATRACCIONES CERRARON");
+                System.out.println(">> [PARQUE] LAS ATRACCIONES CERRARON");
                 chequeoHorario.release();
                 cerrarAtracciones();
                 break;
                 
             case 23:
-                System.out.println("ES HORA DE SACAR A TODOS LOS VISITANTES");
+                System.out.println(">> [PARQUE] ES HORA DE SACAR A TODOS LOS VISITANTES");
                 expulsarVisitantes = true;
                 hecharGente();
                 chequeoHorario.release();
@@ -151,13 +150,13 @@ public class Parque {
 
         // No esperamos activo por completo; los visitantes dentro detectarán el cierre
         // y saldrán pronto. Evitamos bloquear la hora indefinidamente.
-        System.out.println("Atracciones marcadas como cerradas. Los visitantes serán desalojados.");
+        System.out.println("[PARQUE]Atracciones marcadas como cerradas. Los visitantes serán desalojados.");
     }
 
     private void hecharGente() throws InterruptedException {
         // expulsar visitantes se maneja en los propios hilos de visitante
         // aquí solo garantizamos que las atracciones permanezcan cerradas
-        System.out.println("Se ha marcado la orden de expulsión; los visitantes terminarán su ciclo pronto.");
+        System.out.println("[PARQUE]Se ha marcado la orden de expulsión; los visitantes terminarán su ciclo pronto.");
         // aguardamos un momento para que los visitantes detecten y terminen
         Thread.sleep(100);
     }
@@ -182,7 +181,7 @@ public class Parque {
         recorrido.abrir();
         comedor.abrir();
         areaPremios.abrir();
-        System.out.println("Las atracciones volvieron a abrir en la mañana.");
+        System.out.println("[PARQUE]Las atracciones volvieron a abrir en la mañana.");
     }
 
     public boolean estanAtraccionesAbiertas() {
