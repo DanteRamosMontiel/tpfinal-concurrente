@@ -20,7 +20,6 @@ public class Visitante extends Thread {
         this.puntos = 0;
     }
 
-    @Override
     public void run() {
         try {
             while (true) {
@@ -45,18 +44,46 @@ public class Visitante extends Thread {
                 System.out.println("[VISITANTE]El visitante N°" + id + " entro al parque utilizando el molinete " + m);
                 parque.dejarMolinete(m);
 
-                while (i < 50 && !parque.debeExpulsarVisitantes()) {
+                while (true && !parque.debeExpulsarVisitantes()) {
                     // si las atracciones estuvieron cerradas, el visitante sólo deambula
-                     Thread.sleep(500);
+                    Thread.sleep(500);
                     if (!parque.estanAtraccionesAbiertas()) {
-                        System.out.println("[VISITANTE]Visitante N°" + id + " deambula por el parque");
-                        Thread.sleep(1000);
-                        i++;
+                        if (parque.hayEspectaculoParaEntrar()) {
+                            try {
+                                parque.entrarEspectaculo(id);
+                                i++;
+                                continue;
+
+                            } catch (InterruptedException e) {
+                                System.out
+                                        .println("[VISITANTE] El visitante " + id
+                                                + " fue interrumpido en el espectáculo");
+                            }
+                        } else {
+                            System.out.println("[VISITANTE]Visitante N°" + id + " deambula por el parque");
+                            Thread.sleep(1000);
+                            i++;
+                        }
+
                         continue;
+                    }
+
+                    // Intenta entrar al espectáculo si está disponible
+                    if (parque.hayEspectaculoParaEntrar()) {
+                        try {
+                            parque.entrarEspectaculo(id);
+                            System.out.println("[VISITANTE] El visitante N°" + id + " salió del espectáculo");
+                            i++;
+                            continue;
+
+                        } catch (InterruptedException e) {
+                            System.out
+                                    .println("[VISITANTE] El visitante " + id + " fue interrumpido en el espectáculo");
+                        }
                     }
                     // int random = rand.nextInt(3);
 
-                    switch (i) {
+                    switch (rand.nextInt(6)) {
                         case 0:
                             // MONTANIA
                             try {
@@ -69,7 +96,7 @@ public class Visitante extends Thread {
                                     System.out.println("[VISITANTE]El visitante N°" + id + " ganó " + puntos
                                             + " puntos, ahora tiene:" + this.puntosDisponibles);
                                 }
-                                
+
                             } catch (InterruptedException e) {
                                 System.out.println("[VISITANTE]El visitante " + id
                                         + " fue interrumpido mientras estaba en la montaña rusa");
@@ -152,8 +179,9 @@ public class Visitante extends Thread {
                                         "[VISITANTE]El visitante N°" + id + " no pudo entrar al comedor, está lleno");
                                 Thread.sleep(3000);
                             }
-                             Thread.sleep(500);
+                            Thread.sleep(500);
                             break;
+
                         default:
                             break;
                     }

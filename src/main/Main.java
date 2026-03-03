@@ -15,7 +15,7 @@ public class Main {
         Parque parque = new Parque(5);
         Random random = new Random();
         // crear suficientes visitantes para que el tren pueda arrancar
-        Visitante[] visitantes = new Visitante[20];
+        Visitante[] visitantes = new Visitante[50];
 
         // Montaña rusa
         simulacionMontania sim = new simulacionMontania(parque);
@@ -28,6 +28,14 @@ public class Main {
         // Asistente premios
         AsistentePremios asistente = new AsistentePremios(parque);
         asistente.start();
+        
+        // Asistentes de espectáculo
+        AsistenteEspectaculo asistente1 = new AsistenteEspectaculo(1, parque);
+        AsistenteEspectaculo asistente2 = new AsistenteEspectaculo(2, parque);
+        AsistenteEspectaculo asistente3 = new AsistenteEspectaculo(3, parque);
+        asistente1.start();
+        asistente2.start();
+        asistente3.start();
 
         // Hora
         Hora h = new Hora(parque);

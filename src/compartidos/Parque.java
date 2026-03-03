@@ -15,10 +15,11 @@ public class Parque {
     private Semaphore chequeoHorario;
 
     // Horarios
-    private boolean abierto;          // indica si el parque permite nuevos accesos por molinete
+    private boolean abierto; // indica si el parque permite nuevos accesos por molinete
     private int horaActual;
     private boolean expulsarVisitantes; // a las 23 los visitantes deben irse
     private boolean atraccionesAbiertas; // control de estado de las atracciones
+    private Object lockEspectaculo = new Object(); // Lock para sincronización de espectáculo
 
     // Atracciones
     private AutosChocadores autosChocadores;
@@ -57,7 +58,7 @@ public class Parque {
         this.areaPremios = new AreaPremios();
         this.comedor = new Comedor(1);
         this.espectaculo = new Espectaculo();
-        this.carreraGomones = new CarreraGomones(10);  
+        this.carreraGomones = new CarreraGomones(10);
         this.recorrido = new recorridoAGomones();
     }
 
@@ -96,7 +97,7 @@ public class Parque {
     public void cambiarHora() throws InterruptedException {
         chequeoHorario.acquire();
         horaActual++;
-        if (horaActual==24) {
+        if (horaActual == 24) {
             horaActual = 0;
         }
         System.out.println(">> [PARQUE] Hora actual: " + horaActual + ":00");
@@ -106,6 +107,11 @@ public class Parque {
                 this.expulsarVisitantes = false;
                 System.out.println(">> [PARQUE] EL PARQUE ABRIO");
                 abrirAtracciones();
+                // Inicia el primer espectáculo
+                espectaculo.iniciarEspectaculo();
+                synchronized (lockEspectaculo) {
+                    lockEspectaculo.notifyAll();
+                }
                 // notificar a visitantes que estaban esperando la reapertura
                 synchronized (aperturaLock) {
                     aperturaLock.notifyAll();
@@ -113,9 +119,65 @@ public class Parque {
                 chequeoHorario.release();
                 break;
 
+            case 12:
+                System.out.println(">> [PARQUE] ¡SE ABREN LAS PUERTAS DEL ESPECTACULO!");
+                espectaculo.iniciarEspectaculo();
+                synchronized (lockEspectaculo) {
+                    lockEspectaculo.notifyAll();
+                }
+                chequeoHorario.release();
+                break;
+            case 13:
+                System.out.println("[PARQUE] SE INICIA EL ESPECTACULO");
+                espectaculo.empezarEspectaculo();
+                chequeoHorario.release();
+                break;
+            case 14:
+                System.out.println("[PARQUE] FINALIZO EL ESPECTACULO");
+                espectaculo.finEspectaculo();
+                chequeoHorario.release();
+                break;
+            case 15:
+                System.out.println(">> [PARQUE] ¡SE ABREN LAS PUERTAS DEL ESPECTACULO!");
+                espectaculo.iniciarEspectaculo();
+                synchronized (lockEspectaculo) {
+                    lockEspectaculo.notifyAll();
+                }
+                chequeoHorario.release();
+                break;
+            case 16:
+                System.out.println("[PARQUE] SE INICIA EL ESPECTACULO");
+               espectaculo.empezarEspectaculo();
+                chequeoHorario.release();
+                break;
+            case 17:
+                System.out.println("[PARQUE] FINALIZO EL ESPECTACULO");
+                espectaculo.finEspectaculo();
+                chequeoHorario.release();
+                break;
             case 18:
                 this.abierto = false;
-                System.out.println(">> [PARQUE] EL PARQUE CERRO");
+                System.out.println(">> [PARQUE] EL PARQUE CERRO PARA NUEVOS INGRESOS");
+                // Pero ocurre el espectáculo de las 18
+                System.out.println(">> [PARQUE] ¡SE ABREN LAS PUERTAS DEL ESPECTACULO!");
+                espectaculo.iniciarEspectaculo();
+                synchronized (lockEspectaculo) {
+                    lockEspectaculo.notifyAll();
+                }
+                chequeoHorario.release();
+                break;
+
+            case 21:
+                System.out.println(">> [PARQUE] ¡SE ABREN LAS PUERTAS DEL ESPECTACULO!");
+                espectaculo.iniciarEspectaculo();
+                synchronized (lockEspectaculo) {
+                    lockEspectaculo.notifyAll();
+                }
+                chequeoHorario.release();
+                break;
+            case 20:
+                System.out.println("[PARQUE] FINALIZO EL ESPECTACULO");
+                espectaculo.finEspectaculo();
                 chequeoHorario.release();
                 break;
 
@@ -123,12 +185,20 @@ public class Parque {
                 System.out.println(">> [PARQUE] LAS ATRACCIONES CERRARON");
                 chequeoHorario.release();
                 cerrarAtracciones();
+                System.out.println("[PARQUE] SE INICIA EL ESPECTACULO");
+                espectaculo.empezarEspectaculo();
                 break;
-                
+            case 22:
+                System.out.println("[PARQUE] SE INICIA EL ESPECTACULO");
+                espectaculo.empezarEspectaculo();
+                chequeoHorario.release();
+                break;
             case 23:
                 System.out.println(">> [PARQUE] ES HORA DE SACAR A TODOS LOS VISITANTES");
                 expulsarVisitantes = true;
                 hecharGente();
+                System.out.println("[PARQUE] FINALIZO EL ESPECTACULO");
+                espectaculo.finEspectaculo();
                 chequeoHorario.release();
                 break;
             default:
@@ -162,7 +232,8 @@ public class Parque {
     }
 
     /**
-     * Bloquea el visitante hasta que el parque deje de expulsar visitantes (reapertura)
+     * Bloquea el visitante hasta que el parque deje de expulsar visitantes
+     * (reapertura)
      */
     public void esperarApertura() throws InterruptedException {
         synchronized (aperturaLock) {
@@ -192,27 +263,29 @@ public class Parque {
         return expulsarVisitantes;
     }
 
-    //-----------------------Métodos de montania rusa ---------------------------------
+    // -----------------------Métodos de montania rusa
+    // ---------------------------------
     // Para visitantes
-    public boolean entrarMontania(Visitante v) throws InterruptedException{
+    public boolean entrarMontania(Visitante v) throws InterruptedException {
         return montaniaRusa.entrar(v);
     }
 
-    public int subirVagonMontania(int id) throws InterruptedException{
-       return montaniaRusa.subirAlVagon(id);
+    public int subirVagonMontania(int id) throws InterruptedException {
+        return montaniaRusa.subirAlVagon(id);
     }
 
-    //Para monitoreo
-    public void iniciarViajeMontania() throws InterruptedException{
-      montaniaRusa.iniciarViaje();
+    // Para monitoreo
+    public void iniciarViajeMontania() throws InterruptedException {
+        montaniaRusa.iniciarViaje();
     }
 
-    public void terminarViajeMontania() throws InterruptedException{
-     montaniaRusa.terminarViaje();  
+    public void terminarViajeMontania() throws InterruptedException {
+        montaniaRusa.terminarViaje();
     }
 
-    //-----------------------Métodos de recorrido en gomones (tren + bicis) --------
-    //visitante usa el tren
+    // -----------------------Métodos de recorrido en gomones (tren + bicis)
+    // --------
+    // visitante usa el tren
     public void subirTren(int id) throws InterruptedException {
         recorrido.subirTren(id);
     }
@@ -232,46 +305,47 @@ public class Parque {
         recorrido.cicloBicicleta(bikeId);
     }
 
-    //-----------------------Métodos de autos chocadores ---------------------------------
+    // -----------------------Métodos de autos chocadores
+    // ---------------------------------
     // Para visitantes
 
-    public int entrarAutosChocadores(int id) throws InterruptedException{
-      return autosChocadores.entrarAutosChocadores(id);
+    public int entrarAutosChocadores(int id) throws InterruptedException {
+        return autosChocadores.entrarAutosChocadores(id);
     }
 
-    //Para monitoreo
-    public void iniciarViajeAutosC() throws InterruptedException{
-      autosChocadores.iniciarAutos();
+    // Para monitoreo
+    public void iniciarViajeAutosC() throws InterruptedException {
+        autosChocadores.iniciarAutos();
     }
 
-    public void terminarViajeAutosC() throws InterruptedException{
-      autosChocadores.terminarAutos();
+    public void terminarViajeAutosC() throws InterruptedException {
+        autosChocadores.terminarAutos();
     }
 
-    //-----------------------Métodos de realidad virtual ---------------------------------
+    // -----------------------Métodos de realidad virtual
+    // ---------------------------------
     // Para visitantes
-    public void entrarRealidadVirtual(int id) throws InterruptedException{
-      realidadVirtual.entrar(id);
+    public void entrarRealidadVirtual(int id) throws InterruptedException {
+        realidadVirtual.entrar(id);
     }
 
-    public int salirRealidadVirtual(int id){
-      return realidadVirtual.salir(id);
+    public int salirRealidadVirtual(int id) {
+        return realidadVirtual.salir(id);
     }
 
-    
-    //----------------------Metodos para Gomones---------------------------------
+    // ----------------------Metodos para Gomones---------------------------------
     public void usarGomon(int id) throws InterruptedException {
         carreraGomones.usarGomon(id);
     }
 
-    public int[] CicloGomon(int gomonId,int cantVisitantes) throws InterruptedException {
+    public int[] CicloGomon(int gomonId, int cantVisitantes) throws InterruptedException {
         return carreraGomones.cicloGomones(gomonId, cantVisitantes);
     }
 
-    public void finCicloGomon(int gomonId,int[] visitantes) throws InterruptedException {
+    public void finCicloGomon(int gomonId, int[] visitantes) throws InterruptedException {
         carreraGomones.finCicloGomones(gomonId, visitantes);
     }
-    
+
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
         return carreraGomones.esperarBolsosCamion();
     }
@@ -280,18 +354,77 @@ public class Parque {
         carreraGomones.finViajeCamion();
     }
 
-    //-----------------------Métodos de tienda de premios ---------------------------------
-    //------------------ Para visitantes y asistente de premios----------------------------
-    public int entrarTiendaPremios(int id,int n) throws InterruptedException{
-      return areaPremios.canjearPremio(id, n);
+    // -----------------------Métodos de tienda de premios
+    // ---------------------------------
+    // ------------------ Para visitantes y asistente de
+    // premios----------------------------
+    public int entrarTiendaPremios(int id, int n) throws InterruptedException {
+        return areaPremios.canjearPremio(id, n);
     }
 
-    //-----------------------Métodos de comedor ---------------------------------
+    // -----------------------Métodos de comedor ---------------------------------
     public Object[] entrarComedor() throws Exception {
         return comedor.entrar();
     }
 
     public void salirComedor(int id) throws InterruptedException {
         comedor.salir(id);
+    }
+
+    // -----------------------Métodos de espectáculo
+    // ---------------------------------
+    /**
+     * Verifica si hay espectáculo disponible para que entren los visitantes
+     */
+    public boolean hayEspectaculoParaEntrar() {
+        return espectaculo.hayEspectaculoDisponible();
+    }
+
+    /**
+     * Los visitantes intentan entrar al espectáculo
+     */
+    public void entrarEspectaculo(int idVisitante) throws InterruptedException {
+        espectaculo.entrarVisitante(idVisitante);
+    }
+
+    /**
+     * Los asistentes esperan a que los visitantes estén listos dentro del
+     * espectáculo
+     */
+    public void asistenteEsperaVisitantes() throws InterruptedException {
+        espectaculo.asistenteEsperaVisitantes();
+    }
+
+    /**
+     * Los asistentes entran al espectáculo
+     */
+    public void entrarAsistentesEspectaculo(int idAsistente) throws InterruptedException {
+        espectaculo.entrarAsistentes();
+    }
+
+    /**
+     * Simula el espectáculo durante 1 hora
+     */
+    public void simularEspectaculo() throws InterruptedException {
+        espectaculo.simularEspectaculo();
+    }
+
+    /**
+     * Los asistentes esperan hasta que sea hora del próximo espectáculo
+     */
+    public void esperarProximoEspectaculo() throws InterruptedException {
+        synchronized (lockEspectaculo) {
+            while (!espectaculo.hayEspectaculoDisponible()) {
+                lockEspectaculo.wait();
+            }
+        }
+    }
+
+    public void finalizarEspectaculo() throws InterruptedException {
+        espectaculo.finEspectaculo();
+    }
+
+    public void iniciarEspectaculo() throws InterruptedException {
+        espectaculo.iniciarEspectaculo();
     }
 }
