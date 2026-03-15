@@ -56,7 +56,7 @@ public class Parque {
         this.rand = new Random();
         this.realidadVirtual = new RealidadVirtual(5, 10, 5);
         this.areaPremios = new AreaPremios();
-        this.comedor = new Comedor(1);
+        this.comedor = new Comedor(5);
         this.espectaculo = new Espectaculo();
         this.carreraGomones = new CarreraGomones(10);
         this.recorrido = new recorridoAGomones();
