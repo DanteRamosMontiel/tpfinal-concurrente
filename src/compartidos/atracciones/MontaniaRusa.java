@@ -15,7 +15,7 @@ public class MontaniaRusa {
     private final Semaphore todosBajaron;
     private final AtomicInteger sentados = new AtomicInteger(0);
 
-    private boolean abierto = true;
+    private volatile boolean abierto = true;
 
     public MontaniaRusa() {
         this.colaParaSubir = new ArrayBlockingQueue<>(10); // espacio de espera
