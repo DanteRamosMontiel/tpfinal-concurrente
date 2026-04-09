@@ -29,10 +29,7 @@ public class Visitante extends Thread {
                 do {
                     m = parque.tomarMolinete();
                     if (m == -1) {
-                        if (parque.parqueCerradoDefinitivamente()) {
-                            // El parque cerró para siempre, terminar el hilo
-                            return;
-                        } else if (parque.debeExpulsarVisitantes()) {
+                       if (parque.debeExpulsarVisitantes()) {
                             System.out.println("[VISITANTE]El visitante " + id
                                     + " fue expulsado temporalmente del parque, esperando reapertura.");
                             parque.esperarApertura();
