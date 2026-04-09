@@ -33,12 +33,7 @@ public class AsistentePremios extends Thread {
     public void run() {
         while (true) {
             try {
-                if (parque.debeExpulsarVisitantes()) {
-                    System.out.println("Asistente de premios se retira, parque cerró completamente.");
-                    break;
-                }
                 // Calcula de antemano qué premio daría con 0 puntos para no bloquear
-                // (el saldo real se calcula DESPUÉS de recibir los puntos)
                 // Usamos el método atenderTienda que: recibe puntos, calcula, devuelve saldo
                 parque.atenderTiendaPremios(this::entregarPremio);
 

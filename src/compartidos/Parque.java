@@ -51,7 +51,7 @@ public class Parque {
     }
 
     // Constructor
-    public Parque(int cantMolinetes) {
+    public Parque(int cantMolinetes, int cantGomones) {
         this.molinetes = new Semaphore[cantMolinetes];
         for (int i = 0; i < molinetes.length; i++) {
             molinetes[i] = new Semaphore(1);
@@ -68,7 +68,7 @@ public class Parque {
         this.areaPremios = new AreaPremios();
         this.comedor = new Comedor(1);
         this.espectaculo = new Espectaculo();
-        this.carreraGomones = new CarreraGomones(10);
+        this.carreraGomones = new CarreraGomones(cantGomones);
         this.recorrido = new recorridoAGomones();
     }
 

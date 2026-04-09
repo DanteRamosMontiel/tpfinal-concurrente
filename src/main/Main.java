@@ -12,7 +12,8 @@ public class Main {
 
     public static void main(String[] args) {
         int cantidadBicicletas = 5; // por ejemplo, 5 bicicletas en el parque
-        Parque parque = new Parque(5);
+        int cantidadGomones = 12;
+        Parque parque = new Parque(5, cantidadGomones);
         Random random = new Random();
         // crear suficientes visitantes para que el tren pueda arrancar
         Visitante[] visitantes = new Visitante[50];
@@ -63,7 +64,6 @@ public class Main {
         camion.start();
 
         // arrancar gomones
-        int cantidadGomones = 12;
         int i = 0;
 
         while (i < cantidadGomones) {

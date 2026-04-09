@@ -2,144 +2,151 @@ package compartidos.atracciones;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
-
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CarreraGomones {
-    private final Object Bolso;
-    private final Semaphore Camion = new Semaphore(0); // señal para que la camioneta parta después de G gomones
-    private final Semaphore EsperarCamion = new Semaphore(0); // visitantes bloqueados esperando la camioneta
+    private final Object Bolso = new Object();
+    
+    // Semáforos de interacción con el camión
+    private final Semaphore Camion = new Semaphore(0); 
+    private final Semaphore EsperarCamion = new Semaphore(0); 
+    
     private final ConcurrentHashMap<Integer, Object> Bolsos = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Integer, Semaphore> semGomon = new ConcurrentHashMap<>();
     private final BlockingQueue<Integer> colaGomones = new ArrayBlockingQueue<>(50);
-    private final Semaphore mutex = new Semaphore(1); // para proteger contadores y control de vuelta
+    
+    private final Semaphore mutex = new Semaphore(1); // Protege contadores
+    
     private int cantGomonesNecesarios;
-    private int cantGomonesEsperando;
+    
+    // Barreras cíclicas hechas con semáforos
     private final Semaphore Largada = new Semaphore(0);
-    private int vueltasGomones = 0;
-    // contador de visitantes esperando al camión en el destino
-    private int visitantesEsperandoCamion = 0;
-    // control para evitar vueltas simultaneas
+    private final Semaphore LargadaCarrera = new Semaphore(0);
+    private final Semaphore ReunionFinal = new Semaphore(0);
+    
+    // Contadores de ciclo
+    private int cantGomonesEsperando = 0;
+    private int gomonesListosParaPartir = 0;
+    private int visitantesEnEstaCarrera = 0;
+    private int bolsosEnTransito = 0; 
+    
     private boolean vueltaEnProgreso = false;
     private volatile boolean abierto = true;
-
-    // --- Lógica de ganador de carrera ---
-    // Marca si ya hubo un ganador en la tanda actual; se resetea al comenzar nueva tanda
+    
     private final AtomicBoolean ganadorDeTandaDecidido = new AtomicBoolean(false);
-    public static final int FICHAS_CG = 20; // fichas otorgadas al ganador
+    public static final int FICHAS_CG = 20; 
 
     public CarreraGomones(int cantGomones) {
-        Bolso = new Object();
-        this.cantGomonesEsperando = 0;
         this.cantGomonesNecesarios = cantGomones;
     }
 
-    // -------------------------------------------------Metodo para
-    // visitantes---------------------------------------------//
+    // -------------------------------------------------
+    // METODO PARA VISITANTES
+    // -------------------------------------------------
     public void usarGomon(int id) throws InterruptedException {
-        if (abierto) {
-            synchronized (Bolso) {
-                Bolsos.put(id, new Object()); // cada visitante tiene su propio "bolso"
-                System.out.println("Visitante " + id + " tomó un bolso");
-            }
-            // si cierran mientras espera esto se convertirá en un simple retorno
-            colaGomones.put(id); // se encola la petición para usar el gomon
-            Semaphore sem = new Semaphore(0);
-            semGomon.put(id, sem); // se almacena el semáforo para que el gomon lo despierte
-            sem.acquire(); // el visitante espera a que el gomon lo libere
-            if (abierto) {
-                // abandonar despues de despertar
-                System.out.println("Visitante " + id + " terminó la carrera en gomon, aguardando el camión");
-                // El visitante llega al destino y se cuenta entre los que esperan el camión
-                synchronized (this) {
-                    visitantesEsperandoCamion++;
-                }
-                EsperarCamion.acquire(); // espera a que el camión lleve los bolsos al destino
-                // El camión llegó, el visitante reduce el contador
-                synchronized (this) {
-                    visitantesEsperandoCamion--;
-                }
+        if (!abierto) {
+            System.out.println("Gomones cerrados, visitante " + id + " deambula");
+            return;
+        }
 
-                synchronized (Bolso) {
-                    if (Bolsos.containsKey(id)) {
-                        Bolsos.remove(id); // el visitante recupera su bolso
-                        System.out.println("Visitante " + id + " recuperó su bolso");
-                    }
+        synchronized (Bolso) {
+            Bolsos.put(id, new Object()); 
+            System.out.println("Visitante " + id + " tomó un bolso y lo dejó para la camioneta");
+        }
+
+        Semaphore sem = new Semaphore(0);
+        semGomon.put(id, sem); 
+        colaGomones.put(id); // Ahora sí, el gomón lo puede sacar
+        
+        sem.acquire(); // Espera a que el gomón termine la carrera
+        
+        if (abierto) {
+            System.out.println("Visitante " + id + " terminó la carrera, esperando el camión...");
+            EsperarCamion.acquire(); // Espera los bolsos
+            
+            synchronized (Bolso) {
+                if (Bolsos.containsKey(id)) {
+                    Bolsos.remove(id);
+                    System.out.println("Visitante " + id + " recuperó su bolso");
                 }
-            } else {
-                System.out.println("Gomones cerrados, visitante " + id + " deambula");
             }
         } else {
-            System.out.println("Gomones cerrados, visitante " + id + " deambula");
+            System.out.println("Visitante " + id + " evacuado de gomones.");
         }
     }
 
-    // -------------------------------------------------Metodo para
-    // gomon---------------------------------------------//
+    // -------------------------------------------------
+    // METODO PARA GOMONES
+    // -------------------------------------------------
     public int[] cicloGomones(int gomonId, int cantVisitantes) throws InterruptedException {
-
+        
         // =========================
-        // FASE 1 - FORMAR TANDA
+        // FASE 1: LLEGAR A LA ESTACIÓN
         // =========================
         mutex.acquire();
-
         cantGomonesEsperando++;
 
         if (cantGomonesEsperando == cantGomonesNecesarios) {
             vueltaEnProgreso = true;
-            // Resetear ganador al comenzar nueva tanda
             ganadorDeTandaDecidido.set(false);
-
-            // libera gomones
-            Largada.release(cantGomonesNecesarios);
-
-            // despierta al camión
-            Camion.release();
+            
+            // Reseteamos contadores para la siguiente fase
+            gomonesListosParaPartir = 0;
+            visitantesEnEstaCarrera = 0;
+            
+            Largada.release(cantGomonesNecesarios); // Libera la barrera 1
         }
-
         mutex.release();
 
-        // Esperar habilitación de largada
-        Largada.acquire();
+        Largada.acquire(); // Esperan a que toda la tanda de gomones haya llegado
 
         // =========================
-        // FASE 2 - TOMAR PASAJEROS
+        // FASE 2: TOMAR PASAJEROS
         // =========================
-
         int[] visitantes = new int[cantVisitantes];
-
         for (int i = 0; i < cantVisitantes; i++) {
-            visitantes[i] = colaGomones.take();
+            visitantes[i] = colaGomones.take(); // Esperan ordenadamente a los visitantes
         }
+        System.out.println("Gomon " + gomonId + " lleno con " + cantVisitantes + " pasajeros.");
 
-        System.out.println("Gomon " + gomonId +
-                " sale con " + cantVisitantes + " pasajeros.");
+        // =========================
+        // FASE 3: BARRERA DE LARGADA
+        // =========================
+        mutex.acquire();
+        gomonesListosParaPartir++;
+        visitantesEnEstaCarrera += cantVisitantes;
+
+        // FIX 2: Solo el ÚLTIMO gomón arranca el camión y la carrera para todos
+        if (gomonesListosParaPartir == cantGomonesNecesarios) {
+            System.out.println(">> [GOMONES] Todos cargados. ¡Arranca el Camión y la Carrera!");
+            bolsosEnTransito = visitantesEnEstaCarrera; // Congelamos la cantidad para el camión
+            Camion.release(); 
+            LargadaCarrera.release(cantGomonesNecesarios); // Libera la barrera 2
+        }
+        mutex.release();
+
+        LargadaCarrera.acquire(); // Se alinean y largan TODOS JUNTOS
 
         return visitantes;
     }
 
-    /**
-     * Finaliza el ciclo de un gomón. Retorna true si este gomón ganó la carrera
-     * (es el primero en llegar de la tanda), false en caso contrario.
-     */
     public boolean finCicloGomones(int GomonId, int[] visitantes) throws InterruptedException {
-
         boolean esGanador = false;
 
         if (visitantes.length != 0) {
-
-            // Determinar si este gomón es el ganador de la tanda (el primero en llegar)
+            // Determinar ganador atómicamente
             if (ganadorDeTandaDecidido.compareAndSet(false, true)) {
                 esGanador = true;
-                System.out.println("-- [GOMONES " + GomonId + "] ¡GANADOR DE LA CARRERA! Visitantes: "
+                System.out.println("-- [GOMONES " + GomonId + "] ¡GANADOR! Visitantes: "
                         + java.util.Arrays.toString(visitantes)
                         + " reciben " + FICHAS_CG + " fichas CG");
             } else {
-                System.out.println("-- [GOMONES " + GomonId + "] carrera finalizada (no ganador)");
+                System.out.println("-- [GOMONES " + GomonId + "] cruzó la meta");
             }
 
+            // Liberar a sus visitantes
             for (int visitor : visitantes) {
                 Semaphore sem = semGomon.remove(visitor);
                 if (sem != null) {
@@ -147,61 +154,60 @@ public class CarreraGomones {
                 }
             }
 
-            // Controlar fin de tanda
+            // =========================
+            // FASE 4: REUNIÓN FINAL
+            // =========================
             mutex.acquire();
-            cantGomonesEsperando--;
+            cantGomonesEsperando--; // Usamos el contador a la inversa
 
+            // FIX 3: Nadie empieza otra vuelta hasta que todos hayan cruzado la meta
             if (cantGomonesEsperando == 0) {
                 vueltaEnProgreso = false;
+                ReunionFinal.release(cantGomonesNecesarios); // Libera la barrera 3
             }
-
             mutex.release();
+
+            ReunionFinal.acquire(); 
         }
 
         return esGanador;
     }
 
-    // -------------------------------------------------Metodo para camion---------------------------------------------//
+    // -------------------------------------------------
+    // METODOS PARA LA CAMIONETA
+    // -------------------------------------------------
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
-
-        Camion.acquire(); // SOLO el camión usa esto
-
-        System.out.println("Camioneta: Camion lleno, iniciando viaje.");
-
+        Camion.acquire(); // Se despierta en la Fase 3 de los gomones
+        System.out.println("Camioneta: Iniciando viaje con " + bolsosEnTransito + " bolsos.");
         return Bolsos;
     }
 
     public void finViajeCamion() {
-        System.out.println(">> [CAMION] viaje finalizado, dejando a los bolsos en el destino");
+        System.out.println(">> [CAMION] Viaje finalizado, dejando bolsos en destino");
+        
         int liberar;
-        synchronized (this) {
-            liberar = visitantesEsperandoCamion;
+        try {
+            mutex.acquire();
+            liberar = bolsosEnTransito; 
+            mutex.release();
+        } catch (InterruptedException e) {
+            liberar = bolsosEnTransito; 
         }
+        
         if (liberar > 0) {
-            System.out.println(">> [CAMION] libera a " + liberar + " visitantes");
-            EsperarCamion.release(liberar); // libera a todos los visitantes que esperaban
-        } else {
-            System.out.println(">> [CAMION] no había visitantes esperando");
+            System.out.println(">> [CAMION] Libera " + liberar + " permisos para visitantes");
+            EsperarCamion.release(liberar); // Deja permisos exactos
         }
-        // marca que la vuelta se completó y los gomones pueden iniciar siguiente
-        synchronized (this) {
-            vueltaEnProgreso = false;
-            notifyAll(); // despierta gomones que estaban esperando
-        }
-        System.out.println(">> [CAMION] vuelve a dormirse");
     }
 
-    /** marca la atracción cerrada y libera a los visitantes que esperan */
     public synchronized void cerrar() {
         abierto = false;
         colaGomones.clear();
-        // liberar todos los semáforos de gomon para que no queden dormidos
         for (Semaphore s : semGomon.values()) {
-            s.release();
+            s.release(); // Libera atrapados
         }
         semGomon.clear();
-        // liberar también a los que esperan al camión
-        EsperarCamion.release(1000);
+        EsperarCamion.release(1000); 
     }
 
     public synchronized void abrir() {
@@ -209,6 +215,6 @@ public class CarreraGomones {
     }
 
     public synchronized boolean estaVacio() {
-        return colaGomones.isEmpty() && semGomon.isEmpty() && visitantesEsperandoCamion == 0;
+        return colaGomones.isEmpty() && semGomon.isEmpty();
     }
 }

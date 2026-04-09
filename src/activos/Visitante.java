@@ -53,7 +53,6 @@ public class Visitante extends Thread {
                                 parque.entrarEspectaculo(id);
                                 i++;
                                 continue;
-
                             } catch (InterruptedException e) {
                                 System.out
                                         .println("[VISITANTE] El visitante " + id
@@ -64,7 +63,6 @@ public class Visitante extends Thread {
                             Thread.sleep(1000);
                             i++;
                         }
-
                         continue;
                     }
 
@@ -81,9 +79,8 @@ public class Visitante extends Thread {
                                     .println("[VISITANTE] El visitante " + id + " fue interrumpido en el espectáculo");
                         }
                     }
-                    // int random = rand.nextInt(3);
 
-                    switch (rand.nextInt(6)) {
+                    switch (5/*rand.nextInt(6)*/) {
                         case 0:
                             // MONTANIA
                             try {
@@ -147,7 +144,6 @@ public class Visitante extends Thread {
                                 System.out
                                         .println("[VISITANTE]El visitante N°" + id + " entró a la fila de los gomones");
                                 parque.usarGomon(id);
-                                // Retirar fichas CG si fue ganador de la carrera
                                 int fichasCG = parque.retirarFichasCG(id);
                                 if (fichasCG > 0) {
                                     this.puntosDisponibles += fichasCG;
@@ -161,8 +157,6 @@ public class Visitante extends Thread {
                             break;
                         case 4:
                             // TIENDA DE PREMIOS
-                            // El visitante entrega sus puntos al asistente mediante el Exchanger
-                            // y recibe de vuelta el saldo restante tras el canje
                             this.puntosDisponibles = parque.entrarTiendaPremios(id, this.puntosDisponibles);
                             System.out.println("[VISITANTE]El visitante N°" + id + " salió de la tienda. Saldo final: "
                                     + this.puntosDisponibles);
