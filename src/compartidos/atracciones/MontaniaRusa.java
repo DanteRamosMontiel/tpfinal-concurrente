@@ -70,7 +70,6 @@ public class MontaniaRusa {
                 puntosGanados = 16;
             } catch (InterruptedException e) {
                 sentados.decrementAndGet();
-                throw e;
             }
         } else {
             System.out.println("[MONTAÑA RUSA] Montania cerrada, el visitante " + id + " no pudo subir.");
