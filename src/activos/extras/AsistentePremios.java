@@ -33,10 +33,7 @@ public class AsistentePremios extends Thread {
     public void run() {
         while (true) {
             try {
-                // Calcula de antemano qué premio daría con 0 puntos para no bloquear
-                // Usamos el método atenderTienda que: recibe puntos, calcula, devuelve saldo
                 parque.atenderTiendaPremios(this::entregarPremio);
-
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 break;
@@ -48,7 +45,6 @@ public class AsistentePremios extends Thread {
         List<Premio> premiosDisponibles = this.premios;
         List<Premio> premiosAlcanzables = new ArrayList<>();
         int puntosFinal;
-        //Primeor filtramos que premios puede pagar
         for (Premio p : premiosDisponibles) {
             if (p.getPrecio() <= puntos) {
                 premiosAlcanzables.add(p);
@@ -64,7 +60,7 @@ public class AsistentePremios extends Thread {
 
             System.out.println("PREMIO ENTREGADO: " + elegido.getNombre());
 
-            puntosFinal = puntos - elegido.getPrecio(); // Devuelve el sobrante
+            puntosFinal = puntos - elegido.getPrecio(); 
         }
 
         return puntosFinal;

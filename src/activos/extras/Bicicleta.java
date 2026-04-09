@@ -1,12 +1,6 @@
 package activos.extras;
 
 import compartidos.Parque;
-
-/**
- * Cada instancia representa una bicicleta. Cuando está libre se "duerme"
- * en el método {@link Parque#gestionarBicicleta(int)}; el hilo se despertará
- * cuando un visitante solicite usarla.
- */
 public class Bicicleta extends Thread {
     private final Parque parque;
     private final int id;

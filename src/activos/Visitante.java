@@ -24,7 +24,6 @@ public class Visitante extends Thread {
         try {
             while (!Thread.currentThread().isInterrupted() && !parque.parqueCerradoDefinitivamente()) {
                 int m;
-                // reset contador de actividades por "día"
                 i = 0;
                 do {
                     m = parque.tomarMolinete();
@@ -33,7 +32,6 @@ public class Visitante extends Thread {
                             System.out.println("[VISITANTE]El visitante " + id
                                     + " fue expulsado temporalmente del parque, esperando reapertura.");
                             parque.esperarApertura();
-                            // tras la espera, reintenta tomar molinete
                         } else {
                             System.out.println("[PARQUE] CERRADO para nuevos ingresos");
                             Thread.sleep(6000);
@@ -45,7 +43,6 @@ public class Visitante extends Thread {
                 parque.dejarMolinete(m);
 
                 while (true && !parque.debeExpulsarVisitantes()) {
-                    // si las atracciones estuvieron cerradas, el visitante sólo deambula
                     Thread.sleep(500);
                     if (!parque.estanAtraccionesAbiertas()) {
                         if (parque.hayEspectaculoParaEntrar()) {
@@ -66,7 +63,6 @@ public class Visitante extends Thread {
                         continue;
                     }
 
-                    // Intenta entrar al espectáculo si está disponible
                     if (parque.hayEspectaculoParaEntrar()) {
                         try {
                             parque.entrarEspectaculo(id);
@@ -80,7 +76,7 @@ public class Visitante extends Thread {
                         }
                     }
 
-                    switch (5/*rand.nextInt(6)*/) {
+                    switch (rand.nextInt(6)) {
                         case 0:
                             // MONTANIA
                             try {

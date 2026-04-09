@@ -21,11 +21,9 @@ public class Gomones extends Thread {
     public void run() {
         try {
             while (!isInterrupted()) {
-                // pequeño retardo aleatorio para mezclar hilos de distinto tipo
                 Thread.sleep(rand.nextInt(100));
-                int[] visitantes = parque.CicloGomon(id, capacidad); // Gomon solicita pasajeros
+                int[] visitantes = parque.CicloGomon(id, capacidad); 
 
-                // Simular recorrido con tiempo aleatorio (competencia real entre gomones)
                 int tiempoRecorrido = 4000 + rand.nextInt(4000); // entre 4 y 8 segundos
                 Thread.sleep(tiempoRecorrido);
 
@@ -33,7 +31,6 @@ public class Gomones extends Thread {
                 boolean esGanador = parque.finCicloGomon(id, visitantes);
 
                 if (esGanador) {
-                    // Entregar fichas CG a los visitantes ganadores
                     parque.otorgarFichasCG(visitantes, CarreraGomones.FICHAS_CG);
                 }
             }

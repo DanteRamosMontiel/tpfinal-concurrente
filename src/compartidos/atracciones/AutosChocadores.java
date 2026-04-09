@@ -6,15 +6,11 @@ public class AutosChocadores {
     private int bajaron = 0; // personas que bajaron
     private int asientos = 0; // para asignar autos
     private boolean enCurso = false;
-
-    // indicador de apertura/cierre de la atracción
     private boolean abierto = true;
 
     public synchronized int entrarAutosChocadores(int id) throws InterruptedException {
-        // si la atracción está cerrada no hacemos fila
         int retorno = 0;
         if (abierto) {
-            // Espera si ya hay 20 personas o si cierran mientras espera
             while (esperando == 20 && abierto) {
                 wait();
             }
@@ -23,31 +19,26 @@ public class AutosChocadores {
                 asientos++;
                 esperando++;
                 System.out.println("Visitante " + id + " se sentó en el auto " + autoAsignado);
-                // Si es el número 20, despierta al encargado
                 if (esperando == 20) {
                     notifyAll();
                 }
-                // Espera a que inicie la atracción (o cierre)
                 while (!enCurso && abierto) {
                     wait();
                 }
                 if (abierto) {
-                    // Espera a que termine
                     while (enCurso && abierto) {
                         wait();
                     }
                     if (abierto) {
-                        // se cerró en medio del viaje, forzamos salida rápida
                         bajar(id, autoAsignado);
-                        retorno = 13; // puntos ganados por el visitante al jugar a los autos chocadores
+                        retorno = 13; 
                     }else{
                         bajar(id, autoAsignado);
                         retorno=0;
                         System.out.println("AutosChocadores cerró durante el viaje, " + id + " se va a deambular");
                     }
                 }else{
-                    // se cerró antes de comenzar el viaje
-                    // ajustar contadores
+
                     asientos--;
                     esperando--;
                     System.out.println("AutosChocadores cerró antes de iniciar el viaje, " + id + " se va a deambular");
@@ -58,7 +49,7 @@ public class AutosChocadores {
         } else {
             System.out.println("AutosChocadores está cerrado, " + id + " se va a deambular");
         }
-        return retorno; // puntos ganados por el visitante al jugar a los autos chocadores
+        return retorno; 
     }
 
     public synchronized void iniciarAutos() throws InterruptedException {
@@ -67,28 +58,25 @@ public class AutosChocadores {
         }
 
         enCurso = true;
-        notifyAll(); // despierta pasajeros
+        notifyAll(); 
         System.out.println("AUTOS CHOCADORES LLENOS, INICIANDO ATRACCION...");
 
     }
 
     public synchronized void terminarAutos() throws InterruptedException {
         enCurso = false;
-        notifyAll(); // permite que bajen
-        // Espera a que bajen los 20 o hasta que se cierre
+        notifyAll(); 
         while (bajaron < 20 && abierto) {
             wait();
         }
-        // Reset
         esperando = 0;
         bajaron = 0;
         asientos = 0;
-        notifyAll(); // habilita nueva tanda
+        notifyAll(); 
         System.out.println("AUTOS CHOCADORES TERMINADOS, LISTOS PARA NUEVA TANDA...");
     }
 
     private synchronized void bajar(int id, int autoAsignado) {
-        // en caso de cierre abrupto la persona puede bajar igualmente
         System.out.println("Visitante " + id
                 + " se bajo del auto " + autoAsignado);
         bajaron++;
@@ -97,21 +85,18 @@ public class AutosChocadores {
         }
     }
 
-    // Marca la atracción como cerrada y despierta a todos los hilos
      
     public synchronized void cerrar() {
         abierto = false;
         notifyAll();
     }
 
-    //Vuelve a abrir la atracción y permite operaciones normales
      
     public synchronized void abrir() {
         abierto = true;
         notifyAll();
     }
 
-    // Indica si actualmente no hay ningún visitante en espera o en viaje
     
     public synchronized boolean estaVacio() {
         return !enCurso && esperando == 0;
