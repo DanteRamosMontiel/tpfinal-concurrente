@@ -22,18 +22,16 @@ public class Visitante extends Thread {
 
     public void run() {
         try {
-            while (true) {
+            while (!Thread.currentThread().isInterrupted() && !parque.parqueCerradoDefinitivamente()) {
                 int m;
-                // reset contador de actividades por "día"
                 i = 0;
                 do {
                     m = parque.tomarMolinete();
                     if (m == -1) {
-                        if (parque.debeExpulsarVisitantes()) {
+                       if (parque.debeExpulsarVisitantes()) {
                             System.out.println("[VISITANTE]El visitante " + id
                                     + " fue expulsado temporalmente del parque, esperando reapertura.");
                             parque.esperarApertura();
-                            // tras la espera, reintenta tomar molinete
                         } else {
                             System.out.println("[PARQUE] CERRADO para nuevos ingresos");
                             Thread.sleep(6000);
@@ -45,7 +43,6 @@ public class Visitante extends Thread {
                 parque.dejarMolinete(m);
 
                 while (true && !parque.debeExpulsarVisitantes()) {
-                    // si las atracciones estuvieron cerradas, el visitante sólo deambula
                     Thread.sleep(500);
                     if (!parque.estanAtraccionesAbiertas()) {
                         if (parque.hayEspectaculoParaEntrar()) {
@@ -53,7 +50,6 @@ public class Visitante extends Thread {
                                 parque.entrarEspectaculo(id);
                                 i++;
                                 continue;
-
                             } catch (InterruptedException e) {
                                 System.out
                                         .println("[VISITANTE] El visitante " + id
@@ -64,11 +60,9 @@ public class Visitante extends Thread {
                             Thread.sleep(1000);
                             i++;
                         }
-
                         continue;
                     }
 
-                    // Intenta entrar al espectáculo si está disponible
                     if (parque.hayEspectaculoParaEntrar()) {
                         try {
                             parque.entrarEspectaculo(id);
@@ -81,7 +75,6 @@ public class Visitante extends Thread {
                                     .println("[VISITANTE] El visitante " + id + " fue interrumpido en el espectáculo");
                         }
                     }
-                    // int random = rand.nextInt(3);
 
                     switch (/*rand.nextInt(6)*/6) {
                         case 0:
@@ -147,6 +140,12 @@ public class Visitante extends Thread {
                                 System.out
                                         .println("[VISITANTE]El visitante N°" + id + " entró a la fila de los gomones");
                                 parque.usarGomon(id);
+                                int fichasCG = parque.retirarFichasCG(id);
+                                if (fichasCG > 0) {
+                                    this.puntosDisponibles += fichasCG;
+                                    System.out.println("[VISITANTE]El visitante N°" + id + " ganó " + fichasCG
+                                            + " fichas CG, ahora tiene: " + this.puntosDisponibles);
+                                }
                             } catch (InterruptedException e) {
                                 System.out.println("[VISITANTE]El visitante " + id + " salió de la cola de gomones");
                             }
@@ -154,11 +153,7 @@ public class Visitante extends Thread {
                             break;
                         case 4:
                             // TIENDA DE PREMIOS
-                            // 1. Entrega sus puntos y espera que el asistente los reciba
-                            parque.entrarTiendaPremios(id, this.puntosDisponibles);
-                            // 2. Espera a que el asistente le devuelva el saldo procesado
-                            // Enviamos 0 porque lo que nos interesa es lo que RECIBIMOS del asistente
-                            this.puntosDisponibles = parque.entrarTiendaPremios(-1, 0);
+                            this.puntosDisponibles = parque.entrarTiendaPremios(id, this.puntosDisponibles);
                             System.out.println("[VISITANTE]El visitante N°" + id + " salió de la tienda. Saldo final: "
                                     + this.puntosDisponibles);
                             Thread.sleep(500);
@@ -190,8 +185,12 @@ public class Visitante extends Thread {
                 }
             }
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.out.println("[VISITANTE] Visitante N°" + id + " salió del parque definitivamente.");
         } catch (Exception e) {
-            System.out.println("Algo salió mal.");
+            System.out.println("Algo salió mal con el visitante " + id + ": " + e.getMessage());
         }
+        System.out.println("[VISITANTE] Visitante N°" + id + " terminó su visita.");
     }
 }

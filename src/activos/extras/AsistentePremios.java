@@ -5,6 +5,7 @@ import compartidos.shopping.Premio;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.function.IntUnaryOperator;
 
 public class AsistentePremios extends Thread {
 
@@ -32,21 +33,7 @@ public class AsistentePremios extends Thread {
     public void run() {
         while (true) {
             try {
-                if (parque.debeExpulsarVisitantes()) {
-                    System.out.println("Asistente de premios se retira, parque cerró completamente.");
-                    break;
-                }
-                // 1. Primer intercambio: Recibe los puntos del cliente
-                // El -1 es para que AreaPremios no imprima el mensaje de "Entró visitante"
-                int puntosCliente = parque.entrarTiendaPremios(-1, 0);
-
-                // 2. Calcula el premio y cuánto le sobra
-                int saldoParaDevolver = this.entregarPremio(puntosCliente);
-
-                // 3. SEGUNDO INTERCAMBIO: Devuelve el saldo al cliente
-                // Sin esto, el Visitante nunca sale de su línea 'puntos = parque.entrarTiendaPremios(...)'
-                parque.entrarTiendaPremios(-1, saldoParaDevolver);
-
+                parque.atenderTiendaPremios(this::entregarPremio);
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 break;
@@ -58,7 +45,6 @@ public class AsistentePremios extends Thread {
         List<Premio> premiosDisponibles = this.premios;
         List<Premio> premiosAlcanzables = new ArrayList<>();
         int puntosFinal;
-        //Primeor filtramos que premios puede pagar
         for (Premio p : premiosDisponibles) {
             if (p.getPrecio() <= puntos) {
                 premiosAlcanzables.add(p);
@@ -74,7 +60,7 @@ public class AsistentePremios extends Thread {
 
             System.out.println("PREMIO ENTREGADO: " + elegido.getNombre());
 
-            puntosFinal = puntos - elegido.getPrecio(); // Devuelve el sobrante
+            puntosFinal = puntos - elegido.getPrecio(); 
         }
 
         return puntosFinal;

@@ -40,8 +40,18 @@ public class Parque {
     // lock para que visitantes esperen la reapertura sin busy-wait
     private final Object aperturaLock = new Object();
 
+    // Fichas CG pendientes por visitante (otorgadas al ganador de gomones)
+    private final ConcurrentHashMap<Integer, Integer> fichasCGPendientes = new ConcurrentHashMap<>();
+
+    // Indica que el parque cerró definitivamente: los hilos de visitante deben terminar
+    private volatile boolean cerradoDefinitivamente = false;
+
+    public boolean parqueCerradoDefinitivamente() {
+        return cerradoDefinitivamente;
+    }
+
     // Constructor
-    public Parque(int cantMolinetes) {
+    public Parque(int cantMolinetes, int cantGomones) {
         this.molinetes = new Semaphore[cantMolinetes];
         for (int i = 0; i < molinetes.length; i++) {
             molinetes[i] = new Semaphore(1);
@@ -58,7 +68,7 @@ public class Parque {
         this.areaPremios = new AreaPremios();
         this.comedor = new Comedor(5);
         this.espectaculo = new Espectaculo();
-        this.carreraGomones = new CarreraGomones(10);
+        this.carreraGomones = new CarreraGomones(cantGomones);
         this.recorrido = new recorridoAGomones();
     }
 
@@ -224,20 +234,29 @@ public class Parque {
     }
 
     private void hecharGente() throws InterruptedException {
-        // expulsar visitantes se maneja en los propios hilos de visitante
-        // aquí solo garantizamos que las atracciones permanezcan cerradas
-        System.out.println("[PARQUE]Se ha marcado la orden de expulsión; los visitantes terminarán su ciclo pronto.");
-        // aguardamos un momento para que los visitantes detecten y terminen
-        Thread.sleep(100);
+        cerradoDefinitivamente = true;
+        System.out.println("[PARQUE] Se ha marcado la orden de expulsión; los visitantes terminarán su ciclo pronto.");
+        // Despertar visitantes bloqueados en esperarApertura()
+        synchronized (aperturaLock) {
+            aperturaLock.notifyAll();
+        }
+        // Despertar visitantes/asistentes bloqueados dentro del espectáculo
+        espectaculo.cerrarDefinitivamente();
+        // Despertar asistentes bloqueados esperando el próximo espectáculo
+        synchronized (lockEspectaculo) {
+            lockEspectaculo.notifyAll();
+        }
+        // Dar tiempo suficiente para que los visitantes detecten la señal y finalicen
+        Thread.sleep(5000);
     }
 
     /**
      * Bloquea el visitante hasta que el parque deje de expulsar visitantes
-     * (reapertura)
+     * (reapertura). Si el parque cerró definitivamente, retorna de inmediato.
      */
     public void esperarApertura() throws InterruptedException {
         synchronized (aperturaLock) {
-            while (expulsarVisitantes) {
+            while (expulsarVisitantes && !cerradoDefinitivamente) {
                 aperturaLock.wait();
             }
         }
@@ -342,8 +361,22 @@ public class Parque {
         return carreraGomones.cicloGomones(gomonId, cantVisitantes);
     }
 
-    public void finCicloGomon(int gomonId, int[] visitantes) throws InterruptedException {
-        carreraGomones.finCicloGomones(gomonId, visitantes);
+    public boolean finCicloGomon(int gomonId, int[] visitantes) throws InterruptedException {
+        return carreraGomones.finCicloGomones(gomonId, visitantes);
+    }
+
+    /** El hilo Gomones llama a este método cuando su gomón ganó la carrera */
+    public void otorgarFichasCG(int[] visitantes, int fichas) {
+        for (int idVisitante : visitantes) {
+            fichasCGPendientes.merge(idVisitante, fichas, Integer::sum);
+            System.out.println("[GOMONES] Visitante " + idVisitante + " recibe " + fichas + " fichas CG por ganar la carrera");
+        }
+    }
+
+    /** El visitante llama a este método al salir de gomones para retirar sus fichas CG ganadas */
+    public int retirarFichasCG(int idVisitante) {
+        Integer fichas = fichasCGPendientes.remove(idVisitante);
+        return fichas != null ? fichas : 0;
     }
 
     public ConcurrentHashMap<Integer, Object> esperarBolsosCamion() throws InterruptedException {
@@ -356,10 +389,14 @@ public class Parque {
 
     // -----------------------Métodos de tienda de premios
     // ---------------------------------
-    // ------------------ Para visitantes y asistente de
-    // premios----------------------------
+    // Para visitantes
     public int entrarTiendaPremios(int id, int n) throws InterruptedException {
         return areaPremios.canjearPremio(id, n);
+    }
+
+    // Para el asistente de premios: recibe la función de cálculo de saldo
+    public void atenderTiendaPremios(java.util.function.IntUnaryOperator calcularSaldo) throws InterruptedException {
+        areaPremios.atenderVisitante(calcularSaldo);
     }
 
     // -----------------------Métodos de comedor ---------------------------------
@@ -410,14 +447,16 @@ public class Parque {
     }
 
     /**
-     * Los asistentes esperan hasta que sea hora del próximo espectáculo
+     * Los asistentes esperan hasta que sea hora del próximo espectáculo.
+     * Retorna false si el parque cerró definitivamente (el asistente debe terminar).
      */
-    public void esperarProximoEspectaculo() throws InterruptedException {
+    public boolean esperarProximoEspectaculo() throws InterruptedException {
         synchronized (lockEspectaculo) {
-            while (!espectaculo.hayEspectaculoDisponible()) {
+            while (!espectaculo.hayEspectaculoDisponible() && !cerradoDefinitivamente) {
                 lockEspectaculo.wait();
             }
         }
+        return !cerradoDefinitivamente;
     }
 
     public void finalizarEspectaculo() throws InterruptedException {

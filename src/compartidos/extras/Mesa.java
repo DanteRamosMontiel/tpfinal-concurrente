@@ -39,11 +39,21 @@ public class Mesa {
         if (puedeSentarse) {
             //El await() DEBE estar fuera del mutex
             //Si estuviera dentro, el hilo 1 bloquea el mutex, llega al await y se duerme
-            //El hilo 2 nunca podría entrar a incrementar 'actual' (deadlokc)
+            //El hilo 2 nunca podría entrar a incrementar 'actual' (deadlock)
             try {
                 barrier.await();
             } catch (Exception e) {
-                //Si la barrera se rompe, el hilo debería salir
+                // Si la barrera se rompe, revertir el incremento para no dejar la mesa
+                // en un estado inconsistente que bloquee a los demás comensales
+                mutex.acquire();
+                try {
+                    actual--;
+                    if (actual == 0) {
+                        ocupada = false;
+                    }
+                } finally {
+                    mutex.release();
+                }
                 puedeSentarse = false;
             }
         }

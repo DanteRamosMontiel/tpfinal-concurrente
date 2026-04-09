@@ -83,7 +83,7 @@ public class Espectaculo {
                 if (esperandoGrupo == TAMAÑO_GRUPO) {
                     // Soy el 5to integrante, se formó el grupo
                     visitantesEntrados += TAMAÑO_GRUPO;
-                    esperandoGrupo = 0; // Reiniciamos el contador para los próximos 5
+                    esperandoGrupo = 0;
                     System.out.println("[ESPECTACULO] ¡Grupo completo! Entran 5 al teatro. Total sentados: " + visitantesEntrados + "/" + CAPACIDAD_TOTAL);
                     
                     if (visitantesEntrados >= CAPACIDAD_TOTAL) {
@@ -91,32 +91,29 @@ public class Espectaculo {
                         System.out.println("[ESPECTACULO] CAPACIDAD MÁXIMA ALCANZADA. Se cierran las puertas.");
                     }
                     
-                    // Despierto a los 4 que llegaron antes que yo
                     grupoCompletoCond.signalAll(); 
                     viaja = true;
                 } else {
                     // No somos 5 todavía, esperamos
-                    while (esperandoGrupo > 0 && esperandoGrupo < TAMAÑO_GRUPO && !puertasCerradas) {
+                    while (esperandoGrupo > 0 && esperandoGrupo < TAMAÑO_GRUPO && !puertasCerradas && !cerradoDefinitivamente) {
                         grupoCompletoCond.await();
                     }
 
-                    // Al despertar, verificamos si nos despertaron porque el grupo se formó, 
-                    // o porque el show empezó y no llegamos a ser 5
-                    if (puertasCerradas && esperandoGrupo > 0) {
-                        esperandoGrupo--; // Me retiro de la cola triste
+                    if (cerradoDefinitivamente) {
+                        esperandoGrupo--;
+                        System.out.println("[ESPECTACULO] Visitante " + idVisitante + " se retira: parque cerrado definitivamente.");
+                    } else if (puertasCerradas && esperandoGrupo > 0) {
+                        esperandoGrupo--;
                         System.out.println("[ESPECTACULO] Visitante " + idVisitante + " se retira, no se completó su grupo a tiempo.");
                     } else {
-                        // El grupo sí se formó con éxito
                         viaja = true;
                     }
                 }
             }
 
-            // 3. Fase de ver el show (solo si logró formar grupo y entrar)
+            // 3. Fase de ver el show
             if (viaja) {
-                // El hilo se queda bloqueado aquí disfrutando del espectáculo
-                // hasta que finEspectaculo() cambie el flag y haga signalAll()
-                while (hayEspectaculo) {
+                while (hayEspectaculo && !cerradoDefinitivamente) {
                     showTerminadoCond.await();
                 }
             }
@@ -130,8 +127,7 @@ public class Espectaculo {
     public void asistenteEsperaVisitantes() throws InterruptedException {
         lock.lock();
         try {
-            // El asistente espera a que sea la hora (puertas cerradas)
-            while (!puertasCerradas) {
+            while (!puertasCerradas && !cerradoDefinitivamente) {
                 asistentesListos.await();
             }
             System.out.println("[ESPECTACULO] Asistentes pueden ingresar. Hay " + visitantesEntrados + " visitantes acomodados.");
@@ -154,11 +150,27 @@ public class Espectaculo {
         lock.lock();
         try {
             System.out.println("[ESPECTACULO] EL SHOW ESTÁ EN CURSO...");
-            // El asistente también espera a que la Hora marque el fin del espectáculo
-            while (hayEspectaculo) {
+            while (hayEspectaculo && !cerradoDefinitivamente) {
                 showTerminadoCond.await();
             }
             System.out.println("[ESPECTACULO] Asistente termina su turno y se retira.");
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private volatile boolean cerradoDefinitivamente = false;
+
+    public void cerrarDefinitivamente() {
+        lock.lock();
+        try {
+            cerradoDefinitivamente = true;
+            hayEspectaculo = false;
+            espectaculoEnCurso = false;
+            // Despertar a TODOS los hilos bloqueados en cualquier condición
+            grupoCompletoCond.signalAll();
+            showTerminadoCond.signalAll();
+            asistentesListos.signalAll();
         } finally {
             lock.unlock();
         }
@@ -170,10 +182,7 @@ public class Espectaculo {
             hayEspectaculo = false;
             espectaculoEnCurso = false;
             System.out.println("[ESPECTACULO] FIN DEL ESPECTÁCULO. Se abren salidas.");
-            
-            // Este es el momento mágico que despierta a todo el mundo 
-            // (visitantes dentro del show y asistentes simulando)
-            showTerminadoCond.signalAll(); 
+            showTerminadoCond.signalAll();
         } finally {
             lock.unlock();
         }
@@ -191,4 +200,4 @@ public class Espectaculo {
         }
         return disponible;
     }
-}
+} 
