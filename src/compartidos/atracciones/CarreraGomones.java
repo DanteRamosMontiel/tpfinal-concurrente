@@ -5,6 +5,7 @@ import java.util.concurrent.Semaphore;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CarreraGomones {
     private final Object Bolso;
@@ -24,11 +25,15 @@ public class CarreraGomones {
     private boolean vueltaEnProgreso = false;
     private volatile boolean abierto = true;
 
+    // --- Lógica de ganador de carrera ---
+    // Marca si ya hubo un ganador en la tanda actual; se resetea al comenzar nueva tanda
+    private final AtomicBoolean ganadorDeTandaDecidido = new AtomicBoolean(false);
+    public static final int FICHAS_CG = 20; // fichas otorgadas al ganador
+
     public CarreraGomones(int cantGomones) {
         Bolso = new Object();
         this.cantGomonesEsperando = 0;
         this.cantGomonesNecesarios = cantGomones;
-
     }
 
     // -------------------------------------------------Metodo para
@@ -68,7 +73,6 @@ public class CarreraGomones {
             }
         } else {
             System.out.println("Gomones cerrados, visitante " + id + " deambula");
-
         }
     }
 
@@ -85,11 +89,13 @@ public class CarreraGomones {
 
         if (cantGomonesEsperando == cantGomonesNecesarios) {
             vueltaEnProgreso = true;
+            // Resetear ganador al comenzar nueva tanda
+            ganadorDeTandaDecidido.set(false);
 
-            // 🔹 libera gomones
+            // libera gomones
             Largada.release(cantGomonesNecesarios);
 
-            // 🔹 despierta al camión
+            // despierta al camión
             Camion.release();
         }
 
@@ -114,11 +120,25 @@ public class CarreraGomones {
         return visitantes;
     }
 
-    public void finCicloGomones(int GomonId, int[] visitantes) throws InterruptedException {
+    /**
+     * Finaliza el ciclo de un gomón. Retorna true si este gomón ganó la carrera
+     * (es el primero en llegar de la tanda), false en caso contrario.
+     */
+    public boolean finCicloGomones(int GomonId, int[] visitantes) throws InterruptedException {
+
+        boolean esGanador = false;
 
         if (visitantes.length != 0) {
 
-            System.out.println("-- [GOMONES " + GomonId + "] carrera finalizada");
+            // Determinar si este gomón es el ganador de la tanda (el primero en llegar)
+            if (ganadorDeTandaDecidido.compareAndSet(false, true)) {
+                esGanador = true;
+                System.out.println("-- [GOMONES " + GomonId + "] ¡GANADOR DE LA CARRERA! Visitantes: "
+                        + java.util.Arrays.toString(visitantes)
+                        + " reciben " + FICHAS_CG + " fichas CG");
+            } else {
+                System.out.println("-- [GOMONES " + GomonId + "] carrera finalizada (no ganador)");
+            }
 
             for (int visitor : visitantes) {
                 Semaphore sem = semGomon.remove(visitor);
@@ -137,6 +157,8 @@ public class CarreraGomones {
 
             mutex.release();
         }
+
+        return esGanador;
     }
 
     // -------------------------------------------------Metodo para camion---------------------------------------------//

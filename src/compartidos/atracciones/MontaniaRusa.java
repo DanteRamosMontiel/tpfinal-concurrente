@@ -4,6 +4,7 @@ import activos.Visitante;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MontaniaRusa {
 
@@ -12,7 +13,8 @@ public class MontaniaRusa {
     private final Semaphore todosSentados; // barrera de 5
     private final Semaphore esperarViaje; // espera fin del viaje
     private final Semaphore todosBajaron;
-    private int sentados = 0;// contadores para saber cuántos pasajeros han sido sentados
+    // AtomicInteger para acceso seguro sin synchronized en todos los contextos
+    private final AtomicInteger sentados = new AtomicInteger(0);
 
     private boolean abierto = true;
 
@@ -51,7 +53,7 @@ public class MontaniaRusa {
             synchronized (this) {
                 if (abierto) {
                     colaParaSubir.poll(); // Ahora sí salimos de la fila
-                    sentados++;
+                    sentados.incrementAndGet();
                     procesoExitoso = true;
                 } else {
                     // Si el parque cerró mientras esperábamos nuestro turno
@@ -75,10 +77,7 @@ public class MontaniaRusa {
                 puntosGanados = 16;
             } catch (InterruptedException e) {
                 // Revertimos cambios si hay interrupción del sistema
-                synchronized (this) {
-                    if (sentados > 0)
-                        sentados--;
-                }
+                sentados.decrementAndGet();
                 throw e; // Relanzar la excepción real capturada es válido y necesario
             }
         } else {
@@ -114,8 +113,8 @@ public class MontaniaRusa {
         }
         // 3. Ejecución del viaje
         if (puedeIniciar) {
-            System.out.println("[MONTAÑA RUSA] MONTAÑA RUSA LLENA. INICIANDO VIAJE..." + " (Visitantes: " + sentados + ")"
-                    + "Visitantes en espera: " + colaParaSubir.size());
+            System.out.println("[MONTAÑA RUSA] MONTAÑA RUSA LLENA. INICIANDO VIAJE..." + " (Visitantes: " + sentados.get() + ")"
+                    + " Visitantes en espera: " + colaParaSubir.size());
         } else {
             System.out.println("[MONTAÑA RUSA]El viaje no pudo iniciar (atracción cerrada o interrupción).");
         }
@@ -129,9 +128,7 @@ public class MontaniaRusa {
             todosBajaron.acquire(5);
             // Habilitar el vagon para la siguiente tanda
             habilitado.release(5);
-            synchronized (this) {
-                sentados = 0; // Reiniciamos el contador de forma segura
-            }
+            sentados.set(0); // Reiniciamos el contador de forma segura
             System.out.println("[MONTAÑA RUSA] VIAJE TERMINADO ...");
         } else {
             System.out.println("[MONTAÑA RUSA] Finalizando ciclo: la montaña ya se encuentra cerrada.");
@@ -140,10 +137,7 @@ public class MontaniaRusa {
 
     private void bajar(int id) {
         System.out.println("[MONTAÑA RUSA] Visitante " + id + " se bajo del vagon");
-        synchronized (this) {
-            if (sentados > 0)
-                sentados--;
-        }
+        sentados.decrementAndGet();
         todosBajaron.release();
     }
 

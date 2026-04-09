@@ -5,6 +5,7 @@ import compartidos.shopping.Premio;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.function.IntUnaryOperator;
 
 public class AsistentePremios extends Thread {
 
@@ -36,16 +37,10 @@ public class AsistentePremios extends Thread {
                     System.out.println("Asistente de premios se retira, parque cerró completamente.");
                     break;
                 }
-                // 1. Primer intercambio: Recibe los puntos del cliente
-                // El -1 es para que AreaPremios no imprima el mensaje de "Entró visitante"
-                int puntosCliente = parque.entrarTiendaPremios(-1, 0);
-
-                // 2. Calcula el premio y cuánto le sobra
-                int saldoParaDevolver = this.entregarPremio(puntosCliente);
-
-                // 3. SEGUNDO INTERCAMBIO: Devuelve el saldo al cliente
-                // Sin esto, el Visitante nunca sale de su línea 'puntos = parque.entrarTiendaPremios(...)'
-                parque.entrarTiendaPremios(-1, saldoParaDevolver);
+                // Calcula de antemano qué premio daría con 0 puntos para no bloquear
+                // (el saldo real se calcula DESPUÉS de recibir los puntos)
+                // Usamos el método atenderTienda que: recibe puntos, calcula, devuelve saldo
+                parque.atenderTiendaPremios(this::entregarPremio);
 
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
