@@ -28,7 +28,7 @@ public class Visitante extends Thread {
                 do {
                     m = parque.tomarMolinete();
                     if (m == -1) {
-                       if (parque.debeExpulsarVisitantes()) {
+                        if (parque.debeExpulsarVisitantes()) {
                             System.out.println("[VISITANTE]El visitante " + id
                                     + " fue expulsado temporalmente del parque, esperando reapertura.");
                             parque.esperarApertura();
@@ -76,7 +76,7 @@ public class Visitante extends Thread {
                         }
                     }
 
-                    switch (rand.nextInt(6)) {
+                    switch (/*rand.nextInt(6)*/3) {
                         case 0:
                             // MONTANIA
                             try {

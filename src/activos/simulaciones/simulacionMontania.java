@@ -14,7 +14,6 @@ public class simulacionMontania extends Thread{
             try{
                parque.iniciarViajeMontania();;
                Thread.sleep(7000);
-               Thread.sleep(2000);
                parque.terminarViajeMontania();
             }catch(InterruptedException e){}
         }

@@ -10,9 +10,11 @@ public class MontaniaRusa {
 
     private final BlockingQueue<Visitante> colaParaSubir;
     private final Semaphore habilitado;
-    private final Semaphore todosSentados; 
-    private final Semaphore esperarViaje; 
+    private final Semaphore todosSentados;
+    private final Semaphore esperarViaje;
     private final Semaphore todosBajaron;
+    private final Semaphore mutex;
+    private final Semaphore condition;
     private final AtomicInteger sentados = new AtomicInteger(0);
 
     private volatile boolean abierto = true;
@@ -23,6 +25,8 @@ public class MontaniaRusa {
         this.todosSentados = new Semaphore(0);
         this.esperarViaje = new Semaphore(0);
         this.todosBajaron = new Semaphore(0);
+        this.mutex = new Semaphore(1);
+        this.condition = new Semaphore(0);
     }
 
     public boolean entrar(Visitante v) {
@@ -45,14 +49,17 @@ public class MontaniaRusa {
             }
             habilitado.acquire();
 
-            synchronized (this) {
+            mutex.acquire();
+            try {
                 if (abierto) {
-                    colaParaSubir.poll(); 
+                    colaParaSubir.poll();
                     sentados.incrementAndGet();
                     procesoExitoso = true;
                 } else {
                     habilitado.release();
                 }
+            } finally {
+                mutex.release();
             }
         }
 
@@ -60,12 +67,8 @@ public class MontaniaRusa {
             System.out.println("[MONTAÑA RUSA]Visitante " + id + " se sentó en el vagon");
             todosSentados.release();
 
-            synchronized (this) {
-                notifyAll(); 
-            }
-
             try {
-                esperarViaje.acquire(); 
+                esperarViaje.acquire();
                 bajar(id);
                 puntosGanados = 16;
             } catch (InterruptedException e) {
@@ -79,10 +82,18 @@ public class MontaniaRusa {
 
     public void iniciarViaje() throws InterruptedException {
         boolean puedeIniciar = false;
-        synchronized (this) {
+        mutex.acquire();
+        try {
             while (!abierto) {
-                wait();
+                mutex.release();
+                try {
+                    condition.acquire();
+                } finally {
+                    mutex.acquire();
+                }
             }
+        } finally {
+            mutex.release();
         }
         try {
             todosSentados.acquire(5);
@@ -118,32 +129,48 @@ public class MontaniaRusa {
         todosBajaron.release();
     }
 
-    public synchronized void cerrar() {
-        abierto = false;
-        habilitado.release(10); 
-        colaParaSubir.clear();
+    public void cerrar() throws InterruptedException {
+        mutex.acquire();
+        try {
+            abierto = false;
+            habilitado.release(10);
+            colaParaSubir.clear();
 
-        // forzamos que cualquier visitante ya sentado salga
-        esperarViaje.drainPermits();
-        esperarViaje.release(5);
+            // forzamos que cualquier visitante ya sentado salga
+            esperarViaje.drainPermits();
+            esperarViaje.release(5);
 
-        // facilitamos que el simulador salga del acquire
-        todosSentados.drainPermits();
-        todosSentados.release(5);
+            // facilitamos que el simulador salga del acquire
+            todosSentados.drainPermits();
+            todosSentados.release(5);
 
-        // también liberamos cualquier espera de bajada para no bloquear
-        todosBajaron.drainPermits();
-        todosBajaron.release(5);
+            // también liberamos cualquier espera de bajada para no bloquear
+            todosBajaron.drainPermits();
+            todosBajaron.release(5);
 
-        // notificar a cualquiera que esté esperando en el objeto
-        notifyAll();
+            // notificar a cualquiera que esté esperando en el objeto
+            // removed notifyAll()
+        } finally {
+            mutex.release();
+        }
     }
 
-    public synchronized void abrir() {
-        abierto = true;
+    public void abrir() throws InterruptedException {
+        mutex.acquire();
+        try {
+            abierto = true;
+            condition.release();
+        } finally {
+            mutex.release();
+        }
     }
 
-    public synchronized boolean estaVacio() {
-        return colaParaSubir.isEmpty();
+    public boolean estaVacio() throws InterruptedException {
+        mutex.acquire();
+        try {
+            return colaParaSubir.isEmpty();
+        } finally {
+            mutex.release();
+        }
     }
 }

@@ -1,6 +1,7 @@
 package compartidos.shopping;
 
 import java.util.concurrent.Exchanger;
+import java.util.concurrent.Semaphore;
 
 public class AreaPremios {
 
@@ -11,6 +12,9 @@ public class AreaPremios {
     // Segundo Exchanger: asistente devuelve el saldo de puntos restantes
     // Después de que el asistente calcula qué puntos quedan
     private Exchanger<Integer> exchangerSaldo;
+
+    // Semáforo para proteger el acceso al primer exchanger
+    private final Semaphore accesoExchanger = new Semaphore(1);
 
     // Indica si la tienda de premios está abierta
     private volatile boolean abierto = true;
@@ -28,6 +32,7 @@ public class AreaPremios {
             return puntosEntregados;
         }
         System.out.println("El visitante N°" + id + " entró a la tienda de premios con " + puntosEntregados + " puntos");
+        accesoExchanger.acquire();
         try {
             // Primeramente nviamos nuestros puntos al asistente y esperamos que nos reciba
             // Si el asistente no aparece en 3 segundos, nos vamos (esto puede 'salvar' la concurrencia si el area de premios cierra mientras esperamos)
@@ -45,6 +50,8 @@ public class AreaPremios {
             // El asistente no vino en el tiempo permitido, conservamos nuestros puntos
             System.out.println("AreaPremios: timeout esperando asistente, visitante " + id + " conserva sus puntos");
             return puntosEntregados;
+        } finally {
+            accesoExchanger.release();
         }
     }
 

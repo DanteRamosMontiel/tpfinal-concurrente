@@ -157,7 +157,7 @@ public class Parque {
                 break;
             case 16:
                 System.out.println("[PARQUE] SE INICIA EL ESPECTACULO");
-               espectaculo.empezarEspectaculo();
+                espectaculo.empezarEspectaculo();
                 chequeoHorario.release();
                 break;
             case 17:
@@ -262,7 +262,7 @@ public class Parque {
         }
     }
 
-    private void abrirAtracciones() {
+    private void abrirAtracciones() throws InterruptedException {
         atraccionesAbiertas = true;
         autosChocadores.abrir();
         montaniaRusa.abrir();
@@ -327,7 +327,6 @@ public class Parque {
     // -----------------------Métodos de autos chocadores
     // ---------------------------------
     // Para visitantes
-
     public int entrarAutosChocadores(int id) throws InterruptedException {
         return autosChocadores.entrarAutosChocadores(id);
     }
@@ -365,7 +364,9 @@ public class Parque {
         return carreraGomones.finCicloGomones(gomonId, visitantes);
     }
 
-    /** El hilo Gomones llama a este método cuando su gomón ganó la carrera */
+    /**
+     * El hilo Gomones llama a este método cuando su gomón ganó la carrera
+     */
     public void otorgarFichasCG(int[] visitantes, int fichas) {
         for (int idVisitante : visitantes) {
             fichasCGPendientes.merge(idVisitante, fichas, Integer::sum);
@@ -373,7 +374,10 @@ public class Parque {
         }
     }
 
-    /** El visitante llama a este método al salir de gomones para retirar sus fichas CG ganadas */
+    /**
+     * El visitante llama a este método al salir de gomones para retirar sus
+     * fichas CG ganadas
+     */
     public int retirarFichasCG(int idVisitante) {
         Integer fichas = fichasCGPendientes.remove(idVisitante);
         return fichas != null ? fichas : 0;
@@ -448,7 +452,8 @@ public class Parque {
 
     /**
      * Los asistentes esperan hasta que sea hora del próximo espectáculo.
-     * Retorna false si el parque cerró definitivamente (el asistente debe terminar).
+     * Retorna false si el parque cerró definitivamente (el asistente debe
+     * terminar).
      */
     public boolean esperarProximoEspectaculo() throws InterruptedException {
         synchronized (lockEspectaculo) {
